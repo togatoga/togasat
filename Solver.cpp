@@ -15,15 +15,15 @@
 namespace Togasat {
 using Var = int;
 using CRef = int;
-
+using lbool = int;
+const CRef CRef_Undef = UINT32_MAX;
 class Solver {
 
 public:
-  const int l_True = 0;
-  const int l_False = 1;
-  const int l_Undef = 2;
+  const lbool l_True = 0;
+  const lbool l_False = 1;
+  const lbool l_Undef = 2;
 
-  const CRef CRef_Undef = UINT32_MAX;
   const int var_Undef = -1;
 
   // Literal
@@ -46,8 +46,8 @@ public:
     return p;
   };
 
-  inline bool sign(Lit p) { return p.x & 1; }
-  inline int var(Lit p) { return p.x >> 1; }
+  inline bool sign(Lit p) const { return p.x & 1; }
+  inline int var(Lit p) const { return p.x >> 1; }
 
   inline int toInt(Var v) { return v; }
   inline int toInt(Lit p) { return p.x; }
@@ -116,7 +116,7 @@ public:
     seen.push_back(false);
     polarity.push_back(sign);
     decision.push_back(0);
-    trail.push_back(Lit());
+    // trail.push_back(Lit());
     setDecisionVar(v, dvar);
     return v;
   }
@@ -194,23 +194,86 @@ public:
   }
 
   std::unordered_map<CRef, Clause> ca; // store clauses
-  std::unordered_set<CRef> clauses; // original problem;
+  std::unordered_set<CRef> clauses;    // original problem;
 
   std::unordered_map<int, std::list<Watcher>> watches;
   std::vector<VarData> vardata; // store reason and level for each variable
-  std::vector<int> assigns; // The current assignments
-  std::vector<bool> polarity; // The preferred polarity of each variable
+  std::vector<lbool> assigns;   // The current assignments
+  std::vector<bool> polarity;   // The preferred polarity of each variable
   std::vector<bool> decision;
   std::vector<bool> seen;
   // Todo
   std::vector<Lit> trail;
+  std::vector<int> trail_lim;
   // Todo rename(not heap)
   std::queue<Var> order_heap;
+
+  std::vector<Lit> model;
+  std::vector<Lit> conflict;
+
   int nVars() const { return vardata.size(); }
+  int decisionLevel() const { return trail_lim.size(); }
+  lbool value(Lit p) const { return assigns[var(p)] ^ sign(p); }
   void setDecisionVar(Var v, bool b) {
     decision[v] = b;
     order_heap.push(v);
   }
+  void uncheckedEnqueue(Lit p, CRef from = CRef_Undef) {
+    assert(value(p) == l_Undef);
+    assigns[var(p)] = not sign(p);
+    vardata[var(p)] = mkVarData(from, decisionLevel());
+    trail.push_back(p);
+  }
+  CRef propagate() {
+    CRef confl = CRef_Undef;
+    int qhead = 0;
+    while (qhead < trail.size()) {
+      Lit p = trail[qhead++];
+      std::list<Watcher> &ws = watches[p.x];
+      std::list<Watcher>::iterator i, j, end;
+      i = j = ws.begin();
+      end = ws.end();
+      for (; i != end;) {
+        Lit blocker = i->blocker;
+        if (value(blocker) == l_True) {
+          j = i++;
+          j++;
+          continue;
+        }
+
+        CRef cr = i->cref;
+        Clause &c = ca[cr];
+        Lit false_lit = ~p;
+        if (c[0] == false_lit) {
+          c[0] = c[1];
+          c[1] = false_lit;
+        }
+        i++;
+
+        Lit first = c[0];
+        Watcher w = Watcher(cr, first);
+      }
+    }
+    return confl;
+  }
+  lbool search() {
+    int backtrack_level;
+    std::vector<Lit> learnt_clause;
+    while (true) {
+      CRef confl = propagate();
+    }
+  };
+
+  lbool solve() {
+    model.clear();
+    conflict.clear();
+    lbool status = l_Undef;
+    std::cerr << "---start---" << std::endl;
+    while (status == l_Undef) {
+      status = search();
+    }
+    return status;
+  };
 };
 }
 
@@ -218,4 +281,5 @@ int main() {
   Togasat::Solver solver;
   std::string problem_name = "sample_problem.cnf";
   solver.parse_dimacs_problem(problem_name);
+  solver.solve();
 }
