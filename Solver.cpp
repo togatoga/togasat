@@ -6,20 +6,28 @@
 #include <stdio.h>
 #include <algorithm>
 #include <list>
+#include <queue>
 
 #include <unordered_set>
 #include <unordered_map>
 // SAT Solver
 // CDCL Solver
 namespace Togasat {
+  using Var = int;
+  using CRef = int;
 
 class Solver {
 
 public:
-  using Var = int;
-  using CRef = int;
+  const int l_True = 0;
+  const int l_False = 1;
+  const int l_Undef = 2;
+  
+  const CRef CRef_Undef = UINT32_MAX;
   const int var_Undef = -1;
 
+
+  
   // Literal
   struct Lit {
     int x;
@@ -52,7 +60,10 @@ public:
   }
   const Lit lit_Undef = {-2};
   const Lit lit_Error = {-1};
-
+  //VarData
+  struct VarData {CRef reason; int level;};
+  inline VarData mkVarData(CRef cr, int l){ VarData d = {cr, l}; return d; }
+  
   //Watcher
   struct Watcher{
     CRef cref;
@@ -97,6 +108,21 @@ public:
     ca[res] = Clause(ps, learnt);
     return res++;
   }
+
+  Var newVar(bool sign=true, bool dvar=true){
+    int v = nVars();
+    
+    assigns.push_back(l_Undef);
+    vardata.push_back(mkVarData(CRef_Undef, 0));
+
+    seen.push_back(false);
+    polarity.push_back(sign);
+    decision.push_back(0);
+    trail.push_back(Lit());
+    setDecisionVar(v, dvar);
+    return v;
+  }
+
   bool addClause_(std::vector<Lit> &ps){
     std::sort(ps.begin(), ps.end());
     //empty clause
@@ -138,6 +164,7 @@ public:
 	  parsed_lit *= -1;
 	}
 	var = abs(parsed_lit) - 1;
+	while (var >= nVars())newVar();
 	lits.push_back(neg == false ? mkLit(var, false) : mkLit(var, true));
 	
 	parsed_lit = 0;
@@ -175,6 +202,21 @@ public:
   std::unordered_set<CRef> clauses;//original problem;
 
   std::unordered_map<int,std::list<Watcher>> watches;
+  std::vector<VarData> vardata;//store reason and level for each variable
+  std::vector<int> assigns;//The current assignments
+  std::vector<bool> polarity;//The preferred polarity of each variable
+  std::vector<bool> decision;
+  std::vector<bool> seen;
+  //Todo
+  std::vector<Lit> trail;
+  //Todo rename(not heap)
+  std::queue<Var> order_heap;
+  int nVars() const {return vardata.size();}
+  void setDecisionVar(Var v, bool b){
+    decision[v] = b;
+    order_heap.push(v);
+  }
+  
 };
 }
 
