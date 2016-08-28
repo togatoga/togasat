@@ -58,6 +58,8 @@ public:
   }
   const Lit lit_Undef = {-2};
   const Lit lit_Error = {-1};
+
+  //lifted boolean
   // VarData
   struct VarData {
     CRef reason;
@@ -161,8 +163,9 @@ public:
           parsed_lit *= -1;
         }
         var = abs(parsed_lit) - 1;
-        while (var >= nVars())
+        while (var >= nVars()){
           newVar();
+	}
         lits.push_back(neg == false ? mkLit(var, false) : mkLit(var, true));
 
         parsed_lit = 0;
@@ -213,17 +216,94 @@ public:
 
   int nVars() const { return vardata.size(); }
   int decisionLevel() const { return trail_lim.size(); }
-  lbool value(Lit p) const { return assigns[var(p)] ^ sign(p); }
+  void newDecisionLevel() {trail_lim.push_back(trail.size());}
+  bool satisfied(const Clause& c)const {
+    for (int i = 0; i < c.size(); i++){
+      if (value(c[i])== l_True) {
+	return true;
+      }
+    }
+    return false;
+  }
+  lbool value(Var p) const {return assigns[p];}
+  lbool value(Lit p) const {
+    if (assigns[var(p)] == l_Undef){
+      return l_Undef;
+    }
+    return assigns[var(p)] ^ sign(p);
+  }
   void setDecisionVar(Var v, bool b) {
     decision[v] = b;
     order_heap.push(v);
   }
   void uncheckedEnqueue(Lit p, CRef from = CRef_Undef) {
-    assert(value(p) == l_Undef);
-    assigns[var(p)] = not sign(p);
+    //std::cout << p.x << " " << value(p) << std::endl;
+    //std::cout << p.x << " " << value(p) << " " << std::endl;
+    //    assert(value(p) == l_Undef);    
+    if (value(p) != l_Undef)return;
+
+
+    assigns[var(p)] = sign(p);
     vardata[var(p)] = mkVarData(from, decisionLevel());
     trail.push_back(p);
   }
+  //decision
+  Lit pickBranchLit(){
+    Var next = var_Undef;
+    while (order_heap.size() > 0 and (next == var_Undef or value(next) != l_Undef or not decision[next])){
+      next = order_heap.front();
+      order_heap.pop();
+      break;
+    }
+
+    return next == var_Undef ? lit_Undef : mkLit(next, polarity[next]);
+  }
+  //backtrack
+  void cancelUntil(int level){
+    //std::cout << decisionLevel() << " " << level << std::endl;
+    if (decisionLevel() > level){
+      for (int c = trail.size() - 1; c >= trail_lim[level]; c--){
+	Var x = var(trail[c]);
+	assigns[x] = l_Undef;
+	polarity[x] = sign(trail[c]);
+	order_heap.push(x);
+      }
+      trail.erase(trail.end() - (trail.size() - trail_lim[level]), trail.end());
+      trail_lim.erase(trail_lim.end() - (trail_lim.size() - level), trail_lim.end());
+    }
+    
+  }
+  
+  //navie check sat
+  //replace propagate
+  CRef naive_check_sat(){
+    CRef confl = CRef_Undef;
+    for (const CRef& cr : clauses){
+      Clause &c = ca[cr];
+      if (satisfied(c))continue;
+      int cnt_conflict = 0;
+      Lit first;
+      for (int i = 0; i < c.size(); i++){
+	if (value(c[i]) == l_False){
+	  cnt_conflict++;
+	}else if(value(c[i]) == l_Undef){
+	  first = c[i];
+	}
+      }
+      //std::cout << cnt_conflict << " " << c.size() << std::endl;
+      
+     if(cnt_conflict == c.size()){//conflict
+	return cr;
+     }
+     if (cnt_conflict == c.size() - 1){
+       //std::cout << "first!!!" << std::endl;
+       uncheckedEnqueue(first, cr);
+       return confl;
+     }
+    }
+    return confl;
+  }
+  
   CRef propagate() {
     CRef confl = CRef_Undef;
     int qhead = 0;
@@ -260,7 +340,23 @@ public:
     int backtrack_level;
     std::vector<Lit> learnt_clause;
     while (true) {
-      CRef confl = propagate();
+      CRef confl = naive_check_sat();
+      //std::cout << confl << " " << decisionLevel() << std::endl;
+      if (confl != CRef_Undef){
+	//CONFLICT
+	if (decisionLevel() == 0)return l_False;
+	learnt_clause.clear();
+	cancelUntil(decisionLevel() - 1);
+      }else{
+	//NO CONFLICT
+	Lit next = pickBranchLit();
+	if (next == lit_Undef){
+	  return l_True;
+	}
+	newDecisionLevel();
+	uncheckedEnqueue(next);
+
+      }
     }
   };
 
@@ -281,5 +377,6 @@ int main() {
   Togasat::Solver solver;
   std::string problem_name = "sample_problem.cnf";
   solver.parse_dimacs_problem(problem_name);
-  solver.solve();
+  Togasat::lbool status = solver.solve();
+  std::cout << status << std::endl;
 }
