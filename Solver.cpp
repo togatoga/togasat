@@ -138,6 +138,7 @@ public:
   }
   void attachClause(CRef cr) {
     const Clause &c = ca[cr];
+
     assert(c.size() > 1);
 
     watches[~c[0].x].push_back(Watcher(cr, c[1]));
@@ -241,8 +242,6 @@ public:
     //std::cout << p.x << " " << value(p) << " " << std::endl;
     //    assert(value(p) == l_Undef);    
     if (value(p) != l_Undef)return;
-
-
     assigns[var(p)] = sign(p);
     vardata[var(p)] = mkVarData(from, decisionLevel());
     trail.push_back(p);
@@ -296,11 +295,11 @@ public:
 	return cr;
      }
      if (cnt_conflict == c.size() - 1){
-       //std::cout << "first!!!" << std::endl;
        uncheckedEnqueue(first, cr);
-       return confl;
+       //return confl;
      }
     }
+    
     return confl;
   }
   
@@ -346,7 +345,7 @@ public:
 	//CONFLICT
 	if (decisionLevel() == 0)return l_False;
 	learnt_clause.clear();
-	cancelUntil(decisionLevel() - 1);
+	cancelUntil(0);
       }else{
 	//NO CONFLICT
 	Lit next = pickBranchLit();
@@ -375,7 +374,8 @@ public:
 
 int main() {
   Togasat::Solver solver;
-  std::string problem_name = "sample_problem.cnf";
+  //std::string problem_name = "sample_unsat_problem.cnf";
+  std::string problem_name = "sample_sat_problem.cnf";
   solver.parse_dimacs_problem(problem_name);
   Togasat::lbool status = solver.solve();
   std::cout << status << std::endl;
