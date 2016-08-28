@@ -240,8 +240,9 @@ public:
   void uncheckedEnqueue(Lit p, CRef from = CRef_Undef) {
     //std::cout << p.x << " " << value(p) << std::endl;
     //std::cout << p.x << " " << value(p) << " " << std::endl;
-    //    assert(value(p) == l_Undef);    
-    if (value(p) != l_Undef)return;
+    
+    //if (value(p) != l_Undef)return;
+    assert(value(p) == l_Undef);    
     assigns[var(p)] = sign(p);
     vardata[var(p)] = mkVarData(from, decisionLevel());
     trail.push_back(p);
@@ -249,12 +250,16 @@ public:
   //decision
   Lit pickBranchLit(){
     Var next = var_Undef;
-    while (order_heap.size() > 0 and (next == var_Undef or value(next) != l_Undef or not decision[next])){
-      next = order_heap.front();
-      order_heap.pop();
-      break;
+    while (next == var_Undef or value(next) != l_Undef){
+      if (order_heap.empty()){
+	next = var_Undef;
+	break;
+      }else{
+	next = order_heap.front();
+	order_heap.pop();
+      }
     }
-
+    //    std::cout << "pick!!! " << next << " " << value(next) << std::endl;
     return next == var_Undef ? lit_Undef : mkLit(next, polarity[next]);
   }
   //backtrack
@@ -270,34 +275,36 @@ public:
       trail.erase(trail.end() - (trail.size() - trail_lim[level]), trail.end());
       trail_lim.erase(trail_lim.end() - (trail_lim.size() - level), trail_lim.end());
     }
-    
+    //std::cout << trail.size() << " " << trail_lim.size() << std::endl;
   }
   
   //navie check sat
   //replace propagate
   CRef naive_check_sat(){
     CRef confl = CRef_Undef;
-    for (const CRef& cr : clauses){
-      Clause &c = ca[cr];
-      if (satisfied(c))continue;
-      int cnt_conflict = 0;
-      Lit first;
-      for (int i = 0; i < c.size(); i++){
-	if (value(c[i]) == l_False){
-	  cnt_conflict++;
-	}else if(value(c[i]) == l_Undef){
-	  first = c[i];
+    int cnt = 1;
+    while (cnt){
+      cnt--;
+      for (const CRef& cr : clauses){
+	Clause &c = ca[cr];
+	if (satisfied(c))continue;
+	int cnt_conflict = 0;
+	Lit first;
+	for (int i = 0; i < c.size(); i++){
+	  if (value(c[i]) == l_False){
+	    cnt_conflict++;
+	  }else{
+	    first = c[i];
+	  }
+	}
+	if(cnt_conflict == c.size()){//conflict
+	  return cr;
+	}
+	if (cnt_conflict == c.size() - 1){
+	  uncheckedEnqueue(first, cr);
+	  cnt++;
 	}
       }
-      //std::cout << cnt_conflict << " " << c.size() << std::endl;
-      
-     if(cnt_conflict == c.size()){//conflict
-	return cr;
-     }
-     if (cnt_conflict == c.size() - 1){
-       uncheckedEnqueue(first, cr);
-       //return confl;
-     }
     }
     
     return confl;
@@ -340,7 +347,7 @@ public:
     std::vector<Lit> learnt_clause;
     while (true) {
       CRef confl = naive_check_sat();
-      //std::cout << confl << " " << decisionLevel() << std::endl;
+      std::cout << confl << " " << decisionLevel() << " " << trail.size() << std::endl;
       if (confl != CRef_Undef){
 	//CONFLICT
 	if (decisionLevel() == 0)return l_False;
@@ -348,7 +355,9 @@ public:
 	cancelUntil(0);
       }else{
 	//NO CONFLICT
+
 	Lit next = pickBranchLit();
+	
 	if (next == lit_Undef){
 	  return l_True;
 	}
@@ -374,8 +383,8 @@ public:
 
 int main() {
   Togasat::Solver solver;
-  //std::string problem_name = "sample_unsat_problem.cnf";
-  std::string problem_name = "sample_sat_problem.cnf";
+  std::string problem_name = "sample_unsat_problem.cnf";
+  //std::string problem_name = "sample_sat_problem.cnf";
   solver.parse_dimacs_problem(problem_name);
   Togasat::lbool status = solver.solve();
   std::cout << status << std::endl;
