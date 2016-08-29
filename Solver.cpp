@@ -59,7 +59,7 @@ public:
   const Lit lit_Undef = {-2};
   const Lit lit_Error = {-1};
 
-  //lifted boolean
+  // lifted boolean
   // VarData
   struct VarData {
     CRef reason;
@@ -128,7 +128,9 @@ public:
     // empty clause
     if (ps.size() == 0) {
       return false;
-    } else {
+    } else if (ps.size() == 1){
+      uncheckedEnqueue(ps[0]);
+    }else{
       CRef cr = alloc_clause(ps, false);
       clauses.insert(cr);
       attachClause(cr);
@@ -164,9 +166,9 @@ public:
           parsed_lit *= -1;
         }
         var = abs(parsed_lit) - 1;
-        while (var >= nVars()){
+        while (var >= nVars()) {
           newVar();
-	}
+        }
         lits.push_back(neg == false ? mkLit(var, false) : mkLit(var, true));
 
         parsed_lit = 0;
@@ -199,6 +201,7 @@ public:
 
   std::unordered_map<CRef, Clause> ca; // store clauses
   std::unordered_set<CRef> clauses;    // original problem;
+  std::unordered_set<CRef> learnts;
 
   std::unordered_map<int, std::list<Watcher>> watches;
   std::vector<VarData> vardata; // store reason and level for each variable
@@ -217,18 +220,21 @@ public:
 
   int nVars() const { return vardata.size(); }
   int decisionLevel() const { return trail_lim.size(); }
-  void newDecisionLevel() {trail_lim.push_back(trail.size());}
-  bool satisfied(const Clause& c)const {
-    for (int i = 0; i < c.size(); i++){
-      if (value(c[i])== l_True) {
-	return true;
+  void newDecisionLevel() { trail_lim.push_back(trail.size()); }
+
+  inline CRef reason(Var x) const { return vardata[x].reason; }
+  inline int level(Var x) const { return vardata[x].level; }
+  bool satisfied(const Clause &c) const {
+    for (int i = 0; i < c.size(); i++) {
+      if (value(c[i]) == l_True) {
+        return true;
       }
     }
     return false;
   }
-  lbool value(Var p) const {return assigns[p];}
+  lbool value(Var p) const { return assigns[p]; }
   lbool value(Lit p) const {
-    if (assigns[var(p)] == l_Undef){
+    if (assigns[var(p)] == l_Undef) {
       return l_Undef;
     }
     return assigns[var(p)] ^ sign(p);
@@ -238,78 +244,150 @@ public:
     order_heap.push(v);
   }
   void uncheckedEnqueue(Lit p, CRef from = CRef_Undef) {
-    //std::cout << p.x << " " << value(p) << std::endl;
-    //std::cout << p.x << " " << value(p) << " " << std::endl;
-    
-    //if (value(p) != l_Undef)return;
-    assert(value(p) == l_Undef);    
+    // std::cout << p.x << " " << value(p) << std::endl;
+    // std::cout << p.x << " " << value(p) << " " << std::endl;
+
+    // if (value(p) != l_Undef)return;
+    //std::cout << "decision = " << p.x << " " << from << " " << decisionLevel() << std::endl;
+    assert(value(p) == l_Undef);
     assigns[var(p)] = sign(p);
     vardata[var(p)] = mkVarData(from, decisionLevel());
     trail.push_back(p);
   }
-  //decision
-  Lit pickBranchLit(){
+  // decision
+  Lit pickBranchLit() {
     Var next = var_Undef;
-    while (next == var_Undef or value(next) != l_Undef){
-      if (order_heap.empty()){
-	next = var_Undef;
-	break;
-      }else{
-	next = order_heap.front();
-	order_heap.pop();
+    while (next == var_Undef or value(next) != l_Undef) {
+      if (order_heap.empty()) {
+        next = var_Undef;
+        break;
+      } else {
+        next = order_heap.front();
+        order_heap.pop();
       }
     }
     //    std::cout << "pick!!! " << next << " " << value(next) << std::endl;
     return next == var_Undef ? lit_Undef : mkLit(next, polarity[next]);
   }
-  //backtrack
-  void cancelUntil(int level){
-    //std::cout << decisionLevel() << " " << level << std::endl;
-    if (decisionLevel() > level){
-      for (int c = trail.size() - 1; c >= trail_lim[level]; c--){
-	Var x = var(trail[c]);
-	assigns[x] = l_Undef;
-	polarity[x] = sign(trail[c]);
-	order_heap.push(x);
+
+  // clause learning
+  void analyze(CRef confl, std::vector<Lit> &out_learnt, int &out_btlevel) {
+    int pathC = 0;
+    Lit p = lit_Undef;
+    int index = trail.size() - 1;
+    // std::cout << seen.size() << std::endl;
+    // std::cout << __LINE__ << std::endl;
+    //std::cout << "DecisonLevel = " << decisionLevel() << std::endl;
+    out_learnt.push_back(mkLit(0, false));
+    do {
+      //std::cout << "conflict = " << confl << std::endl;
+      assert(confl != CRef_Undef);
+
+      Clause &c = ca[confl];
+      // std::cout << pathC << std::endl;
+      for (int j = (p == lit_Undef) ? 0 : 1; j < c.size(); j++) {
+	
+        Lit q = c[j];
+        // std::cout << j << " " << q.x << std::endl;
+
+	//std::cout << "lit = "<< q.x << " level = " << level(var(q)) << " seen = " << seen[var(q)] << std::endl;
+        if (not seen[var(q)] and level(var(q)) > 0) {
+          seen[var(q)] = 1;
+          if (level(var(q)) >= decisionLevel()) {
+            pathC++;
+          } else {
+            out_learnt.push_back(q);
+          }
+        }
+      }
+      
+      while (not seen[var(trail[index--])]);
+
+      
+      p = trail[index + 1];
+      confl = reason(var(p));
+      seen[var(p)] = 0;
+      pathC--;
+      //std::cout << p.x << " " << confl << " " << pathC << std::endl;
+      // std::cout << confl << std::endl;
+    } while (pathC > 0);
+
+    out_learnt[0] = ~p;
+
+    //
+    if (out_learnt.size() == 1) {
+      out_btlevel = 0;
+    } else {
+      int max_i = 1;
+      for (int i = 2; i < out_learnt.size(); i++) {
+        if (level(var(out_learnt[i])) > level(var(out_learnt[max_i]))) {
+          max_i = i;
+        }
+      }
+
+      Lit p = out_learnt[max_i];
+      out_learnt[max_i] = out_learnt[1];
+      out_learnt[1] = p;
+      out_btlevel = level(var(p));
+    }
+
+    for (int i = 0; i < out_learnt.size(); i++) {
+      seen[var(out_learnt[i])] = false;
+    }
+    
+  }
+
+  // backtrack
+  void cancelUntil(int level) {
+    // std::cout << decisionLevel() << " " << level << std::endl;
+    if (decisionLevel() > level) {
+      for (int c = trail.size() - 1; c >= trail_lim[level]; c--) {
+        Var x = var(trail[c]);
+        assigns[x] = l_Undef;
+        polarity[x] = sign(trail[c]);
+        order_heap.push(x);
       }
       trail.erase(trail.end() - (trail.size() - trail_lim[level]), trail.end());
-      trail_lim.erase(trail_lim.end() - (trail_lim.size() - level), trail_lim.end());
+      trail_lim.erase(trail_lim.end() - (trail_lim.size() - level),
+                      trail_lim.end());
     }
-    //std::cout << trail.size() << " " << trail_lim.size() << std::endl;
+    // std::cout << trail.size() << " " << trail_lim.size() << std::endl;
   }
-  
-  //navie check sat
-  //replace propagate
-  CRef naive_check_sat(){
+
+  // navie check sat
+  // replace propagate
+  CRef naive_check_sat() {
     CRef confl = CRef_Undef;
     int cnt = 1;
-    while (cnt){
+
+      
+    while (cnt > 0){
       cnt--;
-      for (const CRef& cr : clauses){
+      for (const CRef &cr : clauses) {
 	Clause &c = ca[cr];
-	if (satisfied(c))continue;
+	if (satisfied(c))
+	  continue;
 	int cnt_conflict = 0;
 	Lit first;
-	for (int i = 0; i < c.size(); i++){
-	  if (value(c[i]) == l_False){
+	for (int i = 0; i < c.size(); i++) {
+	  if (value(c[i]) == l_False) {
 	    cnt_conflict++;
-	  }else{
+	  } else {
 	    first = c[i];
 	  }
 	}
-	if(cnt_conflict == c.size()){//conflict
+	if (cnt_conflict == c.size()) { // conflict
 	  return cr;
 	}
-	if (cnt_conflict == c.size() - 1){
-	  uncheckedEnqueue(first, cr);
-	  cnt++;
+	if (cnt_conflict == c.size() - 1) {
+	  //uncheckedEnqueue(first, cr);
+	  //cnt++;
 	}
       }
     }
-    
     return confl;
   }
-  
+
   CRef propagate() {
     CRef confl = CRef_Undef;
     int qhead = 0;
@@ -345,25 +423,44 @@ public:
   lbool search() {
     int backtrack_level;
     std::vector<Lit> learnt_clause;
+    learnt_clause.push_back(mkLit(-1, false));
     while (true) {
       CRef confl = naive_check_sat();
-      std::cout << confl << " " << decisionLevel() << " " << trail.size() << std::endl;
-      if (confl != CRef_Undef){
-	//CONFLICT
-	if (decisionLevel() == 0)return l_False;
-	learnt_clause.clear();
-	cancelUntil(0);
-      }else{
-	//NO CONFLICT
+      // std::cout << confl << " " << decisionLevel() << " " << trail.size() <<
+      // std::endl;
+      if (confl != CRef_Undef) {
+        // CONFLICT
+        if (decisionLevel() == 0)
+          return l_False;
+        learnt_clause.clear();
+        analyze(confl, learnt_clause, backtrack_level);
+        cancelUntil(backtrack_level);
+	// std::cout << "learnt_clause.size() = " << learnt_clause.size() << std::endl;
+	// std::cout << "---learnt---" << std::endl;
+	// for (int i = 0; i < learnt_clause.size(); i++){
+	//   std::cout << learnt_clause[i].x << " ";
+	// }
+	// std::cout << std::endl;
+	// std::cout << "---learnt---" << std::endl;
+        if (learnt_clause.size() == 1) {
+          uncheckedEnqueue(learnt_clause[0]);
+        } else {
+          CRef cr = alloc_clause(learnt_clause, true);
+          learnts.insert(cr);
+          attachClause(cr);
+          uncheckedEnqueue(learnt_clause[0], cr);
+        }
 
-	Lit next = pickBranchLit();
-	
-	if (next == lit_Undef){
-	  return l_True;
-	}
-	newDecisionLevel();
-	uncheckedEnqueue(next);
+      } else {
+        // NO CONFLICT
 
+        Lit next = pickBranchLit();
+
+        if (next == lit_Undef) {
+          return l_True;
+        }
+        newDecisionLevel();
+        uncheckedEnqueue(next);
       }
     }
   };
@@ -372,7 +469,7 @@ public:
     model.clear();
     conflict.clear();
     lbool status = l_Undef;
-    std::cerr << "---start---" << std::endl;
+    //std::cerr << "---start---" << std::endl;
     while (status == l_Undef) {
       status = search();
     }
@@ -381,10 +478,11 @@ public:
 };
 }
 
-int main() {
+int main(int argc, char *argv[]) {
   Togasat::Solver solver;
-  std::string problem_name = "sample_unsat_problem.cnf";
+  //std::string problem_name = "sample_unsat_problem.cnf";
   //std::string problem_name = "sample_sat_problem.cnf";
+  std::string problem_name = argv[1];  
   solver.parse_dimacs_problem(problem_name);
   Togasat::lbool status = solver.solve();
   std::cout << status << std::endl;
