@@ -380,10 +380,10 @@ public:
 	if (cnt_conflict == c.size()) { // conflict
 	  return cr;
 	}
-	if (cnt_conflict == c.size() - 1) {
+	//if (cnt_conflict == c.size() - 1) {
 	  //uncheckedEnqueue(first, cr);
 	  //cnt++;
-	}
+	//}
       }
     }
     return confl;
