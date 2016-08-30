@@ -475,6 +475,18 @@ public:
     }
     return status;
   };
+  
+  void addClause(std::vector<int> &clause){
+    std::vector<Lit> lits;
+    for (int i = 0; i < clause.size(); i++){
+      int var = abs(clause[i]) - 1;
+      while (var >= newVar());
+      lits.push_back(var > 0 ? mkLit(var, false) : mkLit(var, true));
+    }
+    addClause_(lits);
+  }
+
+  
 };
 }
 
