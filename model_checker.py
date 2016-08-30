@@ -13,14 +13,14 @@ def parse_model(file_name):
 def parse_problem(problem_file, model):
     for line in open(problem_file, "r"):
         line = line.rstrip()
-        if (len(line) > 0 and line[0] == 'p'):
+        if (len(line) == 0 or line[0] == 'p' or line[0] == 'c'):
             continue
         values = list(map(int, line.split()))
+
         values = values[:-1]
 
         satisfied = False
         for lit in values:
-
             var = abs(lit) - 1
             if (lit > 0):
                 if (model[var] > 0):
@@ -37,8 +37,8 @@ def parse_problem(problem_file, model):
 if __name__ == "__main__":
     problem_file = sys.argv[1]
     model_file = sys.argv[2]
-
     status, model = parse_model(model_file)
     calc_status = parse_problem(problem_file,  model)
     problem_name = os.path.basename(problem_file)
+    assert(status == calc_status)
     print (problem_name, status, calc_status, status == calc_status)
