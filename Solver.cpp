@@ -216,6 +216,7 @@ public:
   std::queue<Var> order_heap;
 
   std::vector<Lit> model;
+  lbool answer;
   std::vector<Lit> conflict;
 
   int nVars() const { return vardata.size(); }
@@ -469,10 +470,12 @@ public:
     model.clear();
     conflict.clear();
     lbool status = l_Undef;
+    answer = l_Undef;
     //std::cerr << "---start---" << std::endl;
     while (status == l_Undef) {
       status = search();
     }
+    answer = status;
     return status;
   };
   
@@ -485,7 +488,22 @@ public:
     }
     addClause_(lits);
   }
+  void print_answer(){
+    if (answer == 0){
+      std::cout << "SAT" << std::endl;
+      for (int i = 0; i < assigns.size(); i++){
+	if (assigns[i] == 0){
+	  std::cout << (i + 1) << " ";
+	}else{
+	  std::cout << -(i + 1) << " ";
+	}
+      }
+      std::cout << "0" << std::endl;
+    }else{
+      std::cout << "UNSAT" << std::endl;
+    }
 
+  }
   
 };
 }
@@ -497,5 +515,5 @@ int main(int argc, char *argv[]) {
   std::string problem_name = argv[1];  
   solver.parse_dimacs_problem(problem_name);
   Togasat::lbool status = solver.solve();
-  std::cout << status << std::endl;
+  solver.print_answer();
 }
