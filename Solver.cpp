@@ -471,7 +471,6 @@ public:
     conflict.clear();
     lbool status = l_Undef;
     answer = l_Undef;
-    //std::cerr << "---start---" << std::endl;
     while (status == l_Undef) {
       status = search();
     }
@@ -483,7 +482,7 @@ public:
     std::vector<Lit> lits;
     for (int i = 0; i < clause.size(); i++){
       int var = abs(clause[i]) - 1;
-      while (var >= newVar());
+      while (var >= nVars())newVar();
       lits.push_back(var > 0 ? mkLit(var, false) : mkLit(var, true));
     }
     addClause_(lits);
