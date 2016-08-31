@@ -40,5 +40,5 @@ if __name__ == "__main__":
     status, model = parse_model(model_file)
     calc_status = parse_problem(problem_file,  model)
     problem_name = os.path.basename(problem_file)
-    assert(status == calc_status)
-    print (problem_name, status, calc_status, status == calc_status)
+    if (status != calc_status):
+        print (problem_name, status, calc_status, status == calc_status)
