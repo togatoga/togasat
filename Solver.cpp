@@ -110,8 +110,6 @@ public:
   }
 
   Var newVar(bool sign = true, bool dvar = true) {
-    // static int res = 0;
-    // std::cout << res++ << std::endl;
     int v = nVars();
 
     assigns.push_back(l_Undef);
@@ -120,7 +118,6 @@ public:
     seen.push_back(false);
     polarity.push_back(sign);
     decision.push_back(0);
-    // trail.push_back(Lit());
     setDecisionVar(v, dvar);
     return v;
   }
@@ -248,12 +245,6 @@ public:
     order_heap.push(v);
   }
   void uncheckedEnqueue(Lit p, CRef from = CRef_Undef) {
-    // std::cout << p.x << " " << value(p) << std::endl;
-    // std::cout << p.x << " " << value(p) << " " << std::endl;
-
-    // if (value(p) != l_Undef)return;
-    // std::cout << "decision = " << p.x << " " << from << " " <<
-    // decisionLevel() << std::endl;
     assert(value(p) == l_Undef);
     assigns[var(p)] = sign(p);
     vardata[var(p)] = mkVarData(from, decisionLevel());
@@ -271,7 +262,6 @@ public:
         order_heap.pop();
       }
     }
-    //    std::cout << "pick!!! " << next << " " << value(next) << std::endl;
     return next == var_Undef ? lit_Undef : mkLit(next, polarity[next]);
   }
 
@@ -280,23 +270,15 @@ public:
     int pathC = 0;
     Lit p = lit_Undef;
     int index = trail.size() - 1;
-    // std::cout << seen.size() << std::endl;
-    // std::cout << __LINE__ << std::endl;
-    // std::cout << "DecisonLevel = " << decisionLevel() << std::endl;
     out_learnt.push_back(mkLit(0, false));
     do {
-      // std::cout << "conflict = " << confl << std::endl;
+    
       assert(confl != CRef_Undef);
 
       Clause &c = ca[confl];
-      // std::cout << pathC << std::endl;
       for (int j = (p == lit_Undef) ? 0 : 1; j < c.size(); j++) {
 
         Lit q = c[j];
-        // std::cout << j << " " << q.x << std::endl;
-
-        // std::cout << "lit = "<< q.x << " level = " << level(var(q)) << " seen
-        // = " << seen[var(q)] << std::endl;
         if (not seen[var(q)] and level(var(q)) > 0) {
           seen[var(q)] = 1;
           if (level(var(q)) >= decisionLevel()) {
@@ -314,13 +296,11 @@ public:
       confl = reason(var(p));
       seen[var(p)] = 0;
       pathC--;
-      // std::cout << p.x << " " << confl << " " << pathC << std::endl;
-      // std::cout << confl << std::endl;
     } while (pathC > 0);
 
     out_learnt[0] = ~p;
-
-    //
+    
+    // unit clause
     if (out_learnt.size() == 1) {
       out_btlevel = 0;
     } else {
@@ -344,7 +324,6 @@ public:
 
   // backtrack
   void cancelUntil(int level) {
-    // std::cout << decisionLevel() << " " << level << std::endl;
     if (decisionLevel() > level) {
       for (int c = trail.size() - 1; c >= trail_lim[level]; c--) {
         Var x = var(trail[c]);
@@ -357,7 +336,6 @@ public:
       trail_lim.erase(trail_lim.end() - (trail_lim.size() - level),
                       trail_lim.end());
     }
-    // std::cout << trail.size() << " " << trail_lim.size() << std::endl;
   }
 
   // navie check sat
@@ -384,10 +362,6 @@ public:
         if (cnt_conflict == c.size()) { // conflict
           return cr;
         }
-        // if (cnt_conflict == c.size() - 1) {
-        // uncheckedEnqueue(first, cr);
-        // cnt++;
-        //}
       }
     }
     return confl;
@@ -396,7 +370,6 @@ public:
   CRef propagate() {
     CRef confl = CRef_Undef;
     int num_props = 0;
-    // watches.cleanAll();
 
     while (qhead < trail.size()) {
       Lit p = trail[qhead++]; // 'p' is enqueued fact to propagate.
@@ -411,8 +384,7 @@ public:
           *j++ = *i++;
           continue;
         }
-
-        // Make sure the false literal is data[1]:
+	
         CRef cr = i->cref;
         Clause &c = ca[cr];
         Lit false_lit = ~p;
@@ -421,7 +393,6 @@ public:
         assert(c[1] == false_lit);
         i++;
 
-        // If 0th watch is true, then clause is already satisfied.
         Lit first = c[0];
         Watcher w = Watcher(cr, first);
         if (first != blocker && value(first) == l_True) {
@@ -437,13 +408,10 @@ public:
             watches[(~c[1]).x].push_back(w);
             goto NextClause;
           }
-
-        // Did not find watch -- clause is unit under assignment:
         *j++ = w;
-        if (value(first) == l_False) {
+        if (value(first) == l_False) {//conflict
           confl = cr;
           qhead = trail.size();
-          // Copy the remaining watches:
           while (i < end)
             *j++ = *i++;
         } else
@@ -464,8 +432,7 @@ public:
 
     while (true) {
       CRef confl = propagate();
-      // std::cout << confl << " " << decisionLevel() << " " << trail.size() <<
-      // std::endl;
+
       if (confl != CRef_Undef) {
         // CONFLICT
         if (decisionLevel() == 0)
@@ -473,14 +440,6 @@ public:
         learnt_clause.clear();
         analyze(confl, learnt_clause, backtrack_level);
         cancelUntil(backtrack_level);
-        // std::cout << "learnt_clause.size() = " << learnt_clause.size() <<
-        // std::endl;
-        // std::cout << "---learnt---" << std::endl;
-        // for (int i = 0; i < learnt_clause.size(); i++){
-        //   std::cout << learnt_clause[i].x << " ";
-        // }
-        // std::cout << std::endl;
-        // std::cout << "---learnt---" << std::endl;
         if (learnt_clause.size() == 1) {
           uncheckedEnqueue(learnt_clause[0]);
         } else {
@@ -510,7 +469,6 @@ public:
     lbool status = l_Undef;
     answer = l_Undef;
     qhead = 0;
-    // std::cerr << "---start---" << std::endl;
     while (status == l_Undef) {
       status = search();
     }
@@ -522,7 +480,6 @@ public:
     std::vector<Lit> lits;
     for (int i = 0; i < clause.size(); i++) {
       int var = abs(clause[i]) - 1;
-      // std::cout << "var = " << var << std::endl;
       while (var >= nVars())
         newVar();
       lits.push_back(clause[i] > 0 ? mkLit(var, false) : mkLit(var, true));
