@@ -360,36 +360,6 @@ public:
                       trail_lim.end());
     }
   }
-
-  // navie check sat
-  // replace propagate
-  CRef naive_check_sat() {
-    CRef confl = CRef_Undef;
-    int cnt = 1;
-
-    while (cnt > 0) {
-      cnt--;
-      for (const CRef &cr : clauses) {
-        Clause &c = ca[cr];
-        if (satisfied(c))
-          continue;
-        int cnt_conflict = 0;
-        Lit first;
-        for (int i = 0; i < c.size(); i++) {
-          if (value(c[i]) == l_False) {
-            cnt_conflict++;
-          } else {
-            first = c[i];
-          }
-        }
-        if (cnt_conflict == c.size()) { // conflict
-          return cr;
-        }
-      }
-    }
-    return confl;
-  }
-
   CRef propagate() {
     CRef confl = CRef_Undef;
     int num_props = 0;
