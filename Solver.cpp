@@ -34,6 +34,8 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <unordered_set>
 // SAT Solver
 // CDCL Solver
+// Author togatoga
+// https://github.com/togasakih/Togasat
 namespace togasat {
 using Var = int;
 using CRef = int;
@@ -41,7 +43,7 @@ using lbool = int;
 const CRef CRef_Undef = UINT32_MAX;
 class Solver {
 
-public:
+private:
   const lbool l_True = 0;
   const lbool l_False = 1;
   const lbool l_Undef = 2;
@@ -197,28 +199,7 @@ public:
       }
     }
   }
-  void parse_dimacs_problem(std::string problem_name) {
-    std::vector<Lit> lits;
-    int vars = 0;
-    int clauses = 0;
-    std::string line;
-    std::ifstream ifs(problem_name, std::ios_base::in);
 
-    while (ifs.good()) {
-      getline(ifs, line);
-      if (line.size() > 0) {
-        if (line[0] == 'p') {
-          sscanf(line.c_str(), "p cnf %d %d", &vars, &clauses);
-        } else if (line[0] == 'c' or line[0] == 'p') {
-          continue;
-        } else {
-          readClause(line, lits);
-          addClause_(lits);
-        }
-      }
-    }
-    ifs.close();
-  }
 
   std::unordered_map<CRef, Clause> ca; // store clauses
   std::unordered_set<CRef> clauses;    // original problem;
@@ -454,20 +435,45 @@ public:
       }
     }
   };
+  
+public:
+  Solver(){
+    qhead = 0;
+  }
+  void parse_dimacs_problem(std::string problem_name) {
+    std::vector<Lit> lits;
+    int vars = 0;
+    int clauses = 0;
+    std::string line;
+    std::ifstream ifs(problem_name, std::ios_base::in);
 
+    while (ifs.good()) {
+      getline(ifs, line);
+      if (line.size() > 0) {
+        if (line[0] == 'p') {
+          sscanf(line.c_str(), "p cnf %d %d", &vars, &clauses);
+        } else if (line[0] == 'c' or line[0] == 'p') {
+          continue;
+        } else {
+          readClause(line, lits);
+          addClause_(lits);
+        }
+      }
+    }
+    ifs.close();
+  }
   lbool solve() {
     model.clear();
     conflict.clear();
     lbool status = l_Undef;
     answer = l_Undef;
-    qhead = 0;
     while (status == l_Undef) {
       status = search();
     }
     answer = status;
     return status;
   };
-
+  
   void addClause(std::vector<int> &clause) {
     std::vector<Lit> lits;
     for (int i = 0; i < clause.size(); i++) {
