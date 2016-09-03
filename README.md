@@ -18,9 +18,18 @@ int main(int argc, char *argv[]) {
 }
 ```
 
-Status is 0,SATISFIABLE  
-Status is 1,UNSATSFIABLE  
-Status is 2,UNKNOWN  
+```
+assigns[0] = 0 -> X1 = True
+assigns[1] = 1 -> X2 = False
+assigns[i] = 0 -> X_{i + 1} = True
+```
+
+
+status is 0,SATISFIABLE  
+status is 1,UNSATSFIABLE  
+status is 2,UNKNOWN
+
+
 
 `./Solver <cnf problem>`  
 
