@@ -34,7 +34,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <unordered_set>
 // SAT Solver
 // CDCL Solver
-namespace Togasat {
+namespace togasat {
 using Var = int;
 using CRef = int;
 using lbool = int;
@@ -497,11 +497,11 @@ public:
 }
 
 int main(int argc, char *argv[]) {
-  Togasat::Solver solver;
+  togasat::Solver solver;
   // std::string problem_name = "sample_unsat_problem.cnf";
   // std::string problem_name = "sample_sat_problem.cnf";
   std::string problem_name = argv[1];
   solver.parse_dimacs_problem(problem_name);
-  Togasat::lbool status = solver.solve();
+  togasat::lbool status = solver.solve();
   solver.print_answer();
 }
