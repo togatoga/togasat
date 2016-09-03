@@ -29,6 +29,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <stdio.h>
 #include <string>
 #include <vector>
+#include <sstream>
 
 #include <unordered_map>
 #include <unordered_set>
@@ -173,31 +174,43 @@ private:
   // Input
   void readClause(const std::string &line, std::vector<Lit> &lits) {
     lits.clear();
-
-    int parsed_lit, var;
+    int parsed_lit,var;
     parsed_lit = var = 0;
     bool neg = false;
-    for (int i = 0; i < line.size(); i++) {
-      if (line[i] == '-') {
-        neg = true;
-      } else if (line[i] >= '0' and line[i] <= '9') {
-        parsed_lit = 10 * parsed_lit + (line[i] - '0');
-      } else {
-        if (parsed_lit == 0)
-          break;
-        if (neg) {
-          parsed_lit *= -1;
-        }
-        var = abs(parsed_lit) - 1;
-        while (var >= nVars()) {
-          newVar();
-        }
-        lits.push_back(neg == false ? mkLit(var, false) : mkLit(var, true));
-
-        parsed_lit = 0;
-        neg = false;
+    std::stringstream ss(line);
+    while (ss){
+      int val;
+      ss >> val;
+      if (val == 0)break;
+      var = abs(val) - 1;
+      while (var >= nVars()){
+    	newVar();
       }
+      lits.push_back(val > 0 ? mkLit(var, false) : mkLit(var, true));
     }
+    
+    // for (int i = 0; i < line.size(); i++) {
+    //   if (line[i] == '-') {
+    //     neg = true;
+    //   } else if (line[i] >= '0' and line[i] <= '9') {
+    //     parsed_lit = 10 * parsed_lit + (line[i] - '0');
+    //   } else {
+    //     if (parsed_lit == 0)
+    //       break;
+    //     if (neg) {
+    //       parsed_lit *= -1;
+    //     }
+	
+    //     var = abs(parsed_lit) - 1;
+    //     while (var >= nVars()) {
+    //       newVar();
+    //     }
+    //     lits.push_back(neg == false ? mkLit(var, false) : mkLit(var, true));
+
+    //     parsed_lit = 0;
+    //     neg = false;
+    //   }
+    // }
   }
 
 
@@ -458,7 +471,8 @@ public:
           continue;
         } else {
           readClause(line, lits);
-          addClause_(lits);
+	  if (lits.size() > 0)
+	    addClause_(lits);
         }
       }
     }
