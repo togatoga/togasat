@@ -1,15 +1,15 @@
-#include <vector>
-#include <string>
+#include <algorithm>
+#include <assert.h>
 #include <fstream>
 #include <iostream>
-#include <assert.h>
-#include <stdio.h>
-#include <algorithm>
 #include <list>
 #include <queue>
+#include <stdio.h>
+#include <string>
+#include <vector>
 
-#include <unordered_set>
 #include <unordered_map>
+#include <unordered_set>
 // SAT Solver
 // CDCL Solver
 namespace Togasat {
@@ -244,6 +244,7 @@ public:
     decision[v] = b;
     order_heap.push(v);
   }
+  // propagation
   void uncheckedEnqueue(Lit p, CRef from = CRef_Undef) {
     assert(value(p) == l_Undef);
     assigns[var(p)] = sign(p);
@@ -272,7 +273,7 @@ public:
     int index = trail.size() - 1;
     out_learnt.push_back(mkLit(0, false));
     do {
-    
+
       assert(confl != CRef_Undef);
 
       Clause &c = ca[confl];
@@ -299,7 +300,7 @@ public:
     } while (pathC > 0);
 
     out_learnt[0] = ~p;
-    
+
     // unit clause
     if (out_learnt.size() == 1) {
       out_btlevel = 0;
@@ -384,7 +385,7 @@ public:
           *j++ = *i++;
           continue;
         }
-	
+
         CRef cr = i->cref;
         Clause &c = ca[cr];
         Lit false_lit = ~p;
@@ -409,7 +410,7 @@ public:
             goto NextClause;
           }
         *j++ = w;
-        if (value(first) == l_False) {//conflict
+        if (value(first) == l_False) { // conflict
           confl = cr;
           qhead = trail.size();
           while (i < end)
@@ -417,8 +418,7 @@ public:
         } else
           uncheckedEnqueue(first, cr);
 
-      NextClause:
-        ;
+      NextClause:;
       }
       int size = i - j;
       ws.erase(ws.end() - size, ws.end());
@@ -506,9 +506,9 @@ public:
 
 int main(int argc, char *argv[]) {
   Togasat::Solver solver;
-  //std::string problem_name = "sample_unsat_problem.cnf";
-  //std::string problem_name = "sample_sat_problem.cnf";
-  std::string problem_name = argv[1];  
+  // std::string problem_name = "sample_unsat_problem.cnf";
+  // std::string problem_name = "sample_sat_problem.cnf";
+  std::string problem_name = argv[1];
   solver.parse_dimacs_problem(problem_name);
   Togasat::lbool status = solver.solve();
   solver.print_answer();
