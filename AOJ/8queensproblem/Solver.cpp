@@ -411,16 +411,35 @@ private:
     }
     return confl;
   }
-  lbool search() {
+  
+  static double luby(double y, int x){
+
+    // Find the finite subsequence that contains index 'x', and the
+    // size of that subsequence:
+    int size, seq;
+    for (size = 1, seq = 0; size < x+1; seq++, size = 2*size+1);
+
+    while (size-1 != x){
+      size = (size-1)>>1;
+      seq--;
+      x = x % size;
+    }
+
+    return pow(y, seq);
+  }
+
+  
+  lbool search(int nof_conflicts) {
     int backtrack_level;
     std::vector<Lit> learnt_clause;
     learnt_clause.push_back(mkLit(-1, false));
-
+    int conflictC = 0;
     while (true) {
       CRef confl = propagate();
 
       if (confl != CRef_Undef) {
         // CONFLICT
+	conflictC++;
         if (decisionLevel() == 0)
           return l_False;
         learnt_clause.clear();
@@ -437,7 +456,10 @@ private:
 
       } else {
         // NO CONFLICT
-
+	if ((nof_conflicts >= 0 and conflictC >= nof_conflicts)){
+	  cancelUntil(0);
+	  return l_Undef;
+	}
         Lit next = pickBranchLit();
 
         if (next == lit_Undef) {
@@ -483,8 +505,13 @@ public:
     conflict.clear();
     lbool status = l_Undef;
     answer = l_Undef;
+    int curr_restarts = 0;
+    double restart_inc = 2;
+    double restart_first = 100;
     while (status == l_Undef) {
-      status = search();
+      double rest_base = luby(restart_inc, curr_restarts);
+      status = search(rest_base * restart_first);
+      curr_restarts++;
     }
     answer = status;
     return status;
@@ -517,25 +544,17 @@ public:
   }
 };
 }
-const int H = 8;
-const int W = 8;
+
+
+const int H = 80;
+const int W = 80;
 int N;
 using namespace std;
 int main(int argc, char *argv[]) {
   togasat::Solver solver;
-  togasat::lbool status = solver.solve();
-  cin >> N;
-  //?????????????±??????£?????????
-  for (int i = 0; i < N; i++) {
-    int y, x;
-    cin >> y >> x;
-    vector<int> clause;
-    int lit = y * H + x + 1;
-    clause.push_back(lit);
-    solver.addClause(clause);
-  }
 
   //?°?????????¨?????????
+  
   for (int x = 0; x < W; x++) {
     vector<int> clause;
     for (int y = 0; y < H; y++) {
@@ -604,19 +623,24 @@ int main(int argc, char *argv[]) {
       }
     }
   }
-  solver.solve();
-  // cout << solver.assigns.size() << endl;
-  // cout <<solver.solve() << endl;
-  for (int y = 0; y < H; y++) {
-    for (int x = 0; x < W; x++) {
-      int index = y * H + x;
-      // cout << solver.assigns.size() << " " << index << endl;
-      if (solver.assigns[index] == 0) {
-        cout << "Q";
-      } else {
-        cout << ".";
+  int status = solver.solve();
+  if (status == 0){
+    cout << "SAT" << endl;
+    for (int y = 0; y < H; y++) {
+      for (int x = 0; x < W; x++) {
+	int index = y * H + x;
+	// cout << solver.assigns.size() << " " << index << endl;
+	if (solver.assigns[index] == 0) {
+	  cout << "Q";
+	} else {
+	  cout << ".";
+	}
       }
+      cout << endl;
     }
-    cout << endl;
+  }else if (status == 1){
+    cout << "UNSAT" << endl;
+  }else{
+    cout << "UNKOWN" << endl;
   }
 }
