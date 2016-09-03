@@ -27,6 +27,9 @@ solver.assigns[i] = 0;//X_{i + 1} = True
 
 ####How to solve cnf
 
+`./Solver <cnf problem>`
+
+
 ```
 int main(int argc, char *argv[]) {
   togasat::Solver solver;
@@ -43,7 +46,7 @@ status is 2,UNKNOWN
 
 
 
-`./Solver <cnf problem>`  
+
 
 #####SATISFIABLE
 If Sat Solver prove a given problem is SATISFIABLE(SAT),print SAT and model for problem.  
