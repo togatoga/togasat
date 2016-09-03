@@ -207,7 +207,7 @@ private:
 
   std::unordered_map<int, std::vector<Watcher>> watches;
   std::vector<VarData> vardata; // store reason and level for each variable
-  std::vector<lbool> assigns;   // The current assignments
+
   std::vector<bool> polarity;   // The preferred polarity of each variable
   std::vector<bool> decision;
   std::vector<bool> seen;
@@ -219,7 +219,7 @@ private:
   std::queue<Var> order_heap;
 
   std::vector<Lit> model;
-  lbool answer;
+
   std::vector<Lit> conflict;
 
   int nVars() const { return vardata.size(); }
@@ -437,6 +437,8 @@ private:
   };
   
 public:
+  std::vector<lbool> assigns;   // The current assignments (ex assigns[0] = 0 -> X1 = True, assigns[1] = 1 -> X2 = False)
+  lbool answer;//SATISFIBLE 0 UNSATISFIBLE 1 UNKNOWN 2
   Solver(){
     qhead = 0;
   }
