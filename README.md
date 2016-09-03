@@ -1,4 +1,4 @@
-# Togasat
+at
 CDCL SAT Solver for programming contest.  
 Togasat is CDCL SAT Solver by modifying minisat.
 
@@ -12,11 +12,15 @@ Togasat is CDCL SAT Solver by modifying minisat.
 int main(int argc, char *argv[]) {
   togasat::Solver solver;
   std::string problem_name = argv[1];
-  solver.parse_dimacs_problem(problem_name);
-  togasat::lbool status = solver.solve();
-  solver.print_answer();
+  solver.parse_dimacs_problem(problem_name);//parse problem
+  togasat::lbool status = solver.solve();//solve sat problem
+  solver.print_answer();//print answer
 }
 ```
+
+Status is 0,SATISFIABLE  
+Status is 1,UNSATSFIABLE  
+Status is 2,UNKNOWN  
 
 `./Solver <cnf problem>`  
 
@@ -36,7 +40,12 @@ For example,`-1` represents `X1=False`,`13` represents `X13=True`.
 only print UNSAT.  
 `UNSAT`
 
-####Algorithm
+
+##Tutorial for 8-queen problem
+
+
+
+##Algorithm
 - DPLL
 - Clause learning
 - Two literal watching
