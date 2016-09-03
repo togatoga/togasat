@@ -20,9 +20,9 @@ solver.addClause(clause);//add (x1 v x2 v not x3)
 
 
 ```
-assigns[0] = 0 -> X1 = True
-assigns[1] = 1 -> X2 = False
-assigns[i] = 0 -> X_{i + 1} = True
+solver.assigns[0] = 0;//X1 = True
+solver.assigns[1] = 1;//X2 = False
+solver.assigns[i] = 0;//X_{i + 1} = True
 ```
 
 ####How to solve cnf
