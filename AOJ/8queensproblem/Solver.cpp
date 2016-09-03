@@ -1,25 +1,49 @@
-#include <vector>
-#include <string>
+/************************************************************
+MiniSat -- Copyright (c) 2003-2006, Niklas Een, Niklas Sorensson
+           Copyright (c) 2007-2010  Niklas Sorensson
+Permission is hereby granted, free of charge, to any person obtaining a
+copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be included
+in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ ************************************************************/
+#include <algorithm>
+#include <assert.h>
 #include <fstream>
 #include <iostream>
-#include <assert.h>
-#include <stdio.h>
-#include <algorithm>
 #include <list>
 #include <queue>
+#include <stdio.h>
+#include <string>
+#include <vector>
 
-#include <unordered_set>
 #include <unordered_map>
+#include <unordered_set>
 // SAT Solver
 // CDCL Solver
-namespace Togasat {
+// Author togatoga
+// https://github.com/togasakih/Togasat
+namespace togasat {
 using Var = int;
 using CRef = int;
 using lbool = int;
 const CRef CRef_Undef = UINT32_MAX;
 class Solver {
 
-public:
+private:
   const lbool l_True = 0;
   const lbool l_False = 1;
   const lbool l_Undef = 2;
@@ -110,8 +134,6 @@ public:
   }
 
   Var newVar(bool sign = true, bool dvar = true) {
-    // static int res = 0;
-    // std::cout << res++ << std::endl;
     int v = nVars();
 
     assigns.push_back(l_Undef);
@@ -120,7 +142,6 @@ public:
     seen.push_back(false);
     polarity.push_back(sign);
     decision.push_back(0);
-    // trail.push_back(Lit());
     setDecisionVar(v, dvar);
     return v;
   }
@@ -178,28 +199,7 @@ public:
       }
     }
   }
-  void parse_dimacs_problem(std::string problem_name) {
-    std::vector<Lit> lits;
-    int vars = 0;
-    int clauses = 0;
-    std::string line;
-    std::ifstream ifs(problem_name, std::ios_base::in);
 
-    while (ifs.good()) {
-      getline(ifs, line);
-      if (line.size() > 0) {
-        if (line[0] == 'p') {
-          sscanf(line.c_str(), "p cnf %d %d", &vars, &clauses);
-        } else if (line[0] == 'c' or line[0] == 'p') {
-          continue;
-        } else {
-          readClause(line, lits);
-          addClause_(lits);
-        }
-      }
-    }
-    ifs.close();
-  }
 
   std::unordered_map<CRef, Clause> ca; // store clauses
   std::unordered_set<CRef> clauses;    // original problem;
@@ -207,7 +207,7 @@ public:
 
   std::unordered_map<int, std::vector<Watcher>> watches;
   std::vector<VarData> vardata; // store reason and level for each variable
-  std::vector<lbool> assigns;   // The current assignments
+
   std::vector<bool> polarity;   // The preferred polarity of each variable
   std::vector<bool> decision;
   std::vector<bool> seen;
@@ -219,7 +219,7 @@ public:
   std::queue<Var> order_heap;
 
   std::vector<Lit> model;
-  lbool answer;
+
   std::vector<Lit> conflict;
 
   int nVars() const { return vardata.size(); }
@@ -247,13 +247,8 @@ public:
     decision[v] = b;
     order_heap.push(v);
   }
+  // propagation
   void uncheckedEnqueue(Lit p, CRef from = CRef_Undef) {
-    // std::cout << p.x << " " << value(p) << std::endl;
-    // std::cout << p.x << " " << value(p) << " " << std::endl;
-
-    // if (value(p) != l_Undef)return;
-    // std::cout << "decision = " << p.x << " " << from << " " <<
-    // decisionLevel() << std::endl;
     assert(value(p) == l_Undef);
     assigns[var(p)] = sign(p);
     vardata[var(p)] = mkVarData(from, decisionLevel());
@@ -271,7 +266,6 @@ public:
         order_heap.pop();
       }
     }
-    //    std::cout << "pick!!! " << next << " " << value(next) << std::endl;
     return next == var_Undef ? lit_Undef : mkLit(next, polarity[next]);
   }
 
@@ -280,23 +274,15 @@ public:
     int pathC = 0;
     Lit p = lit_Undef;
     int index = trail.size() - 1;
-    // std::cout << seen.size() << std::endl;
-    // std::cout << __LINE__ << std::endl;
-    // std::cout << "DecisonLevel = " << decisionLevel() << std::endl;
     out_learnt.push_back(mkLit(0, false));
     do {
-      // std::cout << "conflict = " << confl << std::endl;
+
       assert(confl != CRef_Undef);
 
       Clause &c = ca[confl];
-      // std::cout << pathC << std::endl;
       for (int j = (p == lit_Undef) ? 0 : 1; j < c.size(); j++) {
 
         Lit q = c[j];
-        // std::cout << j << " " << q.x << std::endl;
-
-        // std::cout << "lit = "<< q.x << " level = " << level(var(q)) << " seen
-        // = " << seen[var(q)] << std::endl;
         if (not seen[var(q)] and level(var(q)) > 0) {
           seen[var(q)] = 1;
           if (level(var(q)) >= decisionLevel()) {
@@ -314,13 +300,11 @@ public:
       confl = reason(var(p));
       seen[var(p)] = 0;
       pathC--;
-      // std::cout << p.x << " " << confl << " " << pathC << std::endl;
-      // std::cout << confl << std::endl;
     } while (pathC > 0);
 
     out_learnt[0] = ~p;
 
-    //
+    // unit clause
     if (out_learnt.size() == 1) {
       out_btlevel = 0;
     } else {
@@ -344,7 +328,6 @@ public:
 
   // backtrack
   void cancelUntil(int level) {
-    // std::cout << decisionLevel() << " " << level << std::endl;
     if (decisionLevel() > level) {
       for (int c = trail.size() - 1; c >= trail_lim[level]; c--) {
         Var x = var(trail[c]);
@@ -357,46 +340,10 @@ public:
       trail_lim.erase(trail_lim.end() - (trail_lim.size() - level),
                       trail_lim.end());
     }
-    // std::cout << trail.size() << " " << trail_lim.size() << std::endl;
   }
-
-  // navie check sat
-  // replace propagate
-  CRef naive_check_sat() {
-    CRef confl = CRef_Undef;
-    int cnt = 1;
-
-    while (cnt > 0) {
-      cnt--;
-      for (const CRef &cr : clauses) {
-        Clause &c = ca[cr];
-        if (satisfied(c))
-          continue;
-        int cnt_conflict = 0;
-        Lit first;
-        for (int i = 0; i < c.size(); i++) {
-          if (value(c[i]) == l_False) {
-            cnt_conflict++;
-          } else {
-            first = c[i];
-          }
-        }
-        if (cnt_conflict == c.size()) { // conflict
-          return cr;
-        }
-        // if (cnt_conflict == c.size() - 1) {
-        // uncheckedEnqueue(first, cr);
-        // cnt++;
-        //}
-      }
-    }
-    return confl;
-  }
-
   CRef propagate() {
     CRef confl = CRef_Undef;
     int num_props = 0;
-    // watches.cleanAll();
 
     while (qhead < trail.size()) {
       Lit p = trail[qhead++]; // 'p' is enqueued fact to propagate.
@@ -412,7 +359,6 @@ public:
           continue;
         }
 
-        // Make sure the false literal is data[1]:
         CRef cr = i->cref;
         Clause &c = ca[cr];
         Lit false_lit = ~p;
@@ -421,7 +367,6 @@ public:
         assert(c[1] == false_lit);
         i++;
 
-        // If 0th watch is true, then clause is already satisfied.
         Lit first = c[0];
         Watcher w = Watcher(cr, first);
         if (first != blocker && value(first) == l_True) {
@@ -437,20 +382,16 @@ public:
             watches[(~c[1]).x].push_back(w);
             goto NextClause;
           }
-
-        // Did not find watch -- clause is unit under assignment:
         *j++ = w;
-        if (value(first) == l_False) {
+        if (value(first) == l_False) { // conflict
           confl = cr;
           qhead = trail.size();
-          // Copy the remaining watches:
           while (i < end)
             *j++ = *i++;
         } else
           uncheckedEnqueue(first, cr);
 
-      NextClause:
-        ;
+      NextClause:;
       }
       int size = i - j;
       ws.erase(ws.end() - size, ws.end());
@@ -464,8 +405,7 @@ public:
 
     while (true) {
       CRef confl = propagate();
-      // std::cout << confl << " " << decisionLevel() << " " << trail.size() <<
-      // std::endl;
+
       if (confl != CRef_Undef) {
         // CONFLICT
         if (decisionLevel() == 0)
@@ -473,14 +413,6 @@ public:
         learnt_clause.clear();
         analyze(confl, learnt_clause, backtrack_level);
         cancelUntil(backtrack_level);
-        // std::cout << "learnt_clause.size() = " << learnt_clause.size() <<
-        // std::endl;
-        // std::cout << "---learnt---" << std::endl;
-        // for (int i = 0; i < learnt_clause.size(); i++){
-        //   std::cout << learnt_clause[i].x << " ";
-        // }
-        // std::cout << std::endl;
-        // std::cout << "---learnt---" << std::endl;
         if (learnt_clause.size() == 1) {
           uncheckedEnqueue(learnt_clause[0]);
         } else {
@@ -503,26 +435,51 @@ public:
       }
     }
   };
+  
+public:
+  std::vector<lbool> assigns;   // The current assignments (ex assigns[0] = 0 -> X1 = True, assigns[1] = 1 -> X2 = False)
+  lbool answer;//SATISFIBLE 0 UNSATISFIBLE 1 UNKNOWN 2
+  Solver(){
+    qhead = 0;
+  }
+  void parse_dimacs_problem(std::string problem_name) {
+    std::vector<Lit> lits;
+    int vars = 0;
+    int clauses = 0;
+    std::string line;
+    std::ifstream ifs(problem_name, std::ios_base::in);
 
+    while (ifs.good()) {
+      getline(ifs, line);
+      if (line.size() > 0) {
+        if (line[0] == 'p') {
+          sscanf(line.c_str(), "p cnf %d %d", &vars, &clauses);
+        } else if (line[0] == 'c' or line[0] == 'p') {
+          continue;
+        } else {
+          readClause(line, lits);
+          addClause_(lits);
+        }
+      }
+    }
+    ifs.close();
+  }
   lbool solve() {
     model.clear();
     conflict.clear();
     lbool status = l_Undef;
     answer = l_Undef;
-    qhead = 0;
-    // std::cerr << "---start---" << std::endl;
     while (status == l_Undef) {
       status = search();
     }
     answer = status;
     return status;
   };
-
+  
   void addClause(std::vector<int> &clause) {
     std::vector<Lit> lits;
     for (int i = 0; i < clause.size(); i++) {
       int var = abs(clause[i]) - 1;
-      // std::cout << "var = " << var << std::endl;
       while (var >= nVars())
         newVar();
       lits.push_back(clause[i] > 0 ? mkLit(var, false) : mkLit(var, true));
@@ -551,8 +508,8 @@ const int W = 8;
 int N;
 using namespace std;
 int main(int argc, char *argv[]) {
-  Togasat::Solver solver;
-  Togasat::lbool status = solver.solve();
+  togasat::Solver solver;
+  togasat::lbool status = solver.solve();
   cin >> N;
   //?????????????±??????£?????????
   for (int i = 0; i < N; i++) {
