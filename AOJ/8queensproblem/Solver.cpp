@@ -546,16 +546,24 @@ public:
 }
 
 
-const int H = 80;
-const int W = 80;
+const int H = 8;
+const int W = 8;
 int N;
 using namespace std;
 int main(int argc, char *argv[]) {
   togasat::Solver solver;
-
+  int N;
+  cin >> N;
+  for (int i = 0; i < N; i++){
+    vector<int> clause;
+    int x,y;
+    cin >> y >> x;
+    int lit =  H * y + x + 1;
+    clause.push_back(lit);
+    solver.addClause(clause);
+  }
   //?°?????????¨?????????
-  
-  for (int x = 0; x < W; x++) {
+    for (int x = 0; x < W; x++) {
     vector<int> clause;
     for (int y = 0; y < H; y++) {
       int lit = y * H + x + 1;
@@ -625,7 +633,7 @@ int main(int argc, char *argv[]) {
   }
   int status = solver.solve();
   if (status == 0){
-    cout << "SAT" << endl;
+    cerr << "SAT" << endl;
     for (int y = 0; y < H; y++) {
       for (int x = 0; x < W; x++) {
 	int index = y * H + x;
@@ -639,8 +647,8 @@ int main(int argc, char *argv[]) {
       cout << endl;
     }
   }else if (status == 1){
-    cout << "UNSAT" << endl;
+    cerr << "UNSAT" << endl;
   }else{
-    cout << "UNKOWN" << endl;
+    cer << "UNKOWN" << endl;
   }
 }
