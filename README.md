@@ -1,4 +1,4 @@
-at
+# Togasat
 CDCL SAT Solver for programming contest.  
 Togasat is CDCL SAT Solver by modifying minisat.
 
