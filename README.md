@@ -6,7 +6,26 @@ Togasat is CDCL SAT Solver by modifying minisat.
 `g++ -std=c++11 -o Solver -O3 Solver.cpp`
 
 ##How to
+If you want to add a (x1 v x2 v not x3) clause,
+```
+togast::Solver solver;
 
+std::vector<int> clause;
+clause.push_back(1);//x1
+clause.push_back(2);//x2
+clause.push_back(-3);//not x3
+
+solver.addClause(clause);//add (x1 v x2 v not x3)
+```
+
+
+```
+assigns[0] = 0 -> X1 = True
+assigns[1] = 1 -> X2 = False
+assigns[i] = 0 -> X_{i + 1} = True
+```
+
+####How to solve cnf
 
 ```
 int main(int argc, char *argv[]) {
@@ -17,13 +36,6 @@ int main(int argc, char *argv[]) {
   solver.print_answer();//print answer
 }
 ```
-
-```
-assigns[0] = 0 -> X1 = True
-assigns[1] = 1 -> X2 = False
-assigns[i] = 0 -> X_{i + 1} = True
-```
-
 
 status is 0,SATISFIABLE  
 status is 1,UNSATSFIABLE  
