@@ -66,7 +66,7 @@ only print UNSAT.
 
 
 ##Tutorial for 8-queen problem
-
+Comming soon!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
 ##Algorithm
