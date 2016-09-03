@@ -411,16 +411,35 @@ private:
     }
     return confl;
   }
-  lbool search() {
+  
+  static double luby(double y, int x){
+
+    // Find the finite subsequence that contains index 'x', and the
+    // size of that subsequence:
+    int size, seq;
+    for (size = 1, seq = 0; size < x+1; seq++, size = 2*size+1);
+
+    while (size-1 != x){
+      size = (size-1)>>1;
+      seq--;
+      x = x % size;
+    }
+
+    return pow(y, seq);
+  }
+
+  
+  lbool search(int nof_conflicts) {
     int backtrack_level;
     std::vector<Lit> learnt_clause;
     learnt_clause.push_back(mkLit(-1, false));
-
+    int conflictC = 0;
     while (true) {
       CRef confl = propagate();
 
       if (confl != CRef_Undef) {
         // CONFLICT
+	conflictC++;
         if (decisionLevel() == 0)
           return l_False;
         learnt_clause.clear();
@@ -437,7 +456,10 @@ private:
 
       } else {
         // NO CONFLICT
-
+	if ((nof_conflicts >= 0 and conflictC >= nof_conflicts)){
+	  cancelUntil(0);
+	  return l_Undef;
+	}
         Lit next = pickBranchLit();
 
         if (next == lit_Undef) {
@@ -483,8 +505,13 @@ public:
     conflict.clear();
     lbool status = l_Undef;
     answer = l_Undef;
+    int curr_restarts = 0;
+    double restart_inc = 2;
+    double restart_first = 100;
     while (status == l_Undef) {
-      status = search();
+      double rest_base = luby(restart_inc, curr_restarts);
+      status = search(rest_base * restart_first);
+      curr_restarts++;
     }
     answer = status;
     return status;
