@@ -649,6 +649,6 @@ int main(int argc, char *argv[]) {
   }else if (status == 1){
     cerr << "UNSAT" << endl;
   }else{
-    cer << "UNKOWN" << endl;
+    cerr << "UNKOWN" << endl;
   }
 }
