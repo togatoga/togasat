@@ -55,7 +55,7 @@ If Sat Solver prove a given problem is SATISFIABLE(SAT),print SAT and model for 
 
 The model is seperated by space and ended with zero(0).
 
-A postive integer represents True.  
+A positive integer represents True.  
 A negative integer represents False.
 
 For example,`-1` represents `X1=False`,`13` represents `X13=True`.
