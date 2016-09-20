@@ -26,10 +26,10 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <iostream>
 #include <list>
 #include <queue>
+#include <sstream>
 #include <stdio.h>
 #include <string>
 #include <vector>
-#include <sstream>
 
 #include <unordered_map>
 #include <unordered_set>
@@ -41,7 +41,7 @@ namespace togasat {
 using Var = int;
 using CRef = int;
 using lbool = int;
-const CRef CRef_Undef = UINT32_MAX;
+const CRef CRef_Undef = INT32_MAX;
 class Solver {
 
 private:
@@ -57,7 +57,6 @@ private:
     inline bool operator==(Lit p) const { return x == p.x; }
     inline bool operator!=(Lit p) const { return x != p.x; }
     inline bool operator<(Lit p) const { return x < p.x; }
-
     inline Lit operator~() {
       Lit q;
       q.x = x ^ 1;
@@ -70,10 +69,8 @@ private:
     p.x = var + var + sign;
     return p;
   };
-
   inline bool sign(Lit p) const { return p.x & 1; }
   inline int var(Lit p) const { return p.x >> 1; }
-
   inline int toInt(Var v) { return v; }
   inline int toInt(Lit p) { return p.x; }
   inline Lit toLit(int x) {
@@ -94,7 +91,6 @@ private:
     VarData d = {cr, l};
     return d;
   }
-
   // Watcher
   struct Watcher {
     CRef cref;
@@ -174,53 +170,28 @@ private:
   // Input
   void readClause(const std::string &line, std::vector<Lit> &lits) {
     lits.clear();
-    int parsed_lit,var;
+    int parsed_lit, var;
     parsed_lit = var = 0;
     bool neg = false;
     std::stringstream ss(line);
-    while (ss){
+    while (ss) {
       int val;
       ss >> val;
-      if (val == 0)break;
+      if (val == 0)
+        break;
       var = abs(val) - 1;
-      while (var >= nVars()){
-    	newVar();
+      while (var >= nVars()) {
+        newVar();
       }
       lits.push_back(val > 0 ? mkLit(var, false) : mkLit(var, true));
     }
-    
-    // for (int i = 0; i < line.size(); i++) {
-    //   if (line[i] == '-') {
-    //     neg = true;
-    //   } else if (line[i] >= '0' and line[i] <= '9') {
-    //     parsed_lit = 10 * parsed_lit + (line[i] - '0');
-    //   } else {
-    //     if (parsed_lit == 0)
-    //       break;
-    //     if (neg) {
-    //       parsed_lit *= -1;
-    //     }
-	
-    //     var = abs(parsed_lit) - 1;
-    //     while (var >= nVars()) {
-    //       newVar();
-    //     }
-    //     lits.push_back(neg == false ? mkLit(var, false) : mkLit(var, true));
-
-    //     parsed_lit = 0;
-    //     neg = false;
-    //   }
-    // }
   }
-
 
   std::unordered_map<CRef, Clause> ca; // store clauses
   std::unordered_set<CRef> clauses;    // original problem;
   std::unordered_set<CRef> learnts;
-
   std::unordered_map<int, std::vector<Watcher>> watches;
   std::vector<VarData> vardata; // store reason and level for each variable
-
   std::vector<bool> polarity;   // The preferred polarity of each variable
   std::vector<bool> decision;
   std::vector<bool> seen;
@@ -230,11 +201,8 @@ private:
   std::vector<int> trail_lim;
   // Todo rename(not heap)
   std::queue<Var> order_heap;
-
   std::vector<Lit> model;
-
   std::vector<Lit> conflict;
-
   int nVars() const { return vardata.size(); }
   int decisionLevel() const { return trail_lim.size(); }
   void newDecisionLevel() { trail_lim.push_back(trail.size()); }
@@ -260,7 +228,6 @@ private:
     decision[v] = b;
     order_heap.push(v);
   }
-  // propagation
   void uncheckedEnqueue(Lit p, CRef from = CRef_Undef) {
     assert(value(p) == l_Undef);
     assigns[var(p)] = sign(p);
@@ -281,7 +248,6 @@ private:
     }
     return next == var_Undef ? lit_Undef : mkLit(next, polarity[next]);
   }
-
   // clause learning
   void analyze(CRef confl, std::vector<Lit> &out_learnt, int &out_btlevel) {
     int pathC = 0;
@@ -289,12 +255,9 @@ private:
     int index = trail.size() - 1;
     out_learnt.push_back(mkLit(0, false));
     do {
-
       assert(confl != CRef_Undef);
-
       Clause &c = ca[confl];
       for (int j = (p == lit_Undef) ? 0 : 1; j < c.size(); j++) {
-
         Lit q = c[j];
         if (not seen[var(q)] and level(var(q)) > 0) {
           seen[var(q)] = 1;
@@ -305,10 +268,8 @@ private:
           }
         }
       }
-
       while (not seen[var(trail[index--])])
         ;
-
       p = trail[index + 1];
       confl = reason(var(p));
       seen[var(p)] = 0;
@@ -357,7 +318,6 @@ private:
   CRef propagate() {
     CRef confl = CRef_Undef;
     int num_props = 0;
-
     while (qhead < trail.size()) {
       Lit p = trail[qhead++]; // 'p' is enqueued fact to propagate.
       std::vector<Watcher> &ws = watches[p.x];
@@ -401,9 +361,9 @@ private:
           qhead = trail.size();
           while (i < end)
             *j++ = *i++;
-        } else
+        } else {
           uncheckedEnqueue(first, cr);
-
+        }
       NextClause:;
       }
       int size = i - j;
@@ -411,16 +371,17 @@ private:
     }
     return confl;
   }
-  
-  static double luby(double y, int x){
+
+  static double luby(double y, int x) {
 
     // Find the finite subsequence that contains index 'x', and the
     // size of that subsequence:
     int size, seq;
-    for (size = 1, seq = 0; size < x+1; seq++, size = 2*size+1);
+    for (size = 1, seq = 0; size < x + 1; seq++, size = 2 * size + 1)
+      ;
 
-    while (size-1 != x){
-      size = (size-1)>>1;
+    while (size - 1 != x) {
+      size = (size - 1) >> 1;
       seq--;
       x = x % size;
     }
@@ -428,7 +389,6 @@ private:
     return pow(y, seq);
   }
 
-  
   lbool search(int nof_conflicts) {
     int backtrack_level;
     std::vector<Lit> learnt_clause;
@@ -439,7 +399,7 @@ private:
 
       if (confl != CRef_Undef) {
         // CONFLICT
-	conflictC++;
+        conflictC++;
         if (decisionLevel() == 0)
           return l_False;
         learnt_clause.clear();
@@ -456,10 +416,10 @@ private:
 
       } else {
         // NO CONFLICT
-	if ((nof_conflicts >= 0 and conflictC >= nof_conflicts)){
-	  cancelUntil(0);
-	  return l_Undef;
-	}
+        if ((nof_conflicts >= 0 and conflictC >= nof_conflicts)) {
+          cancelUntil(0);
+          return l_Undef;
+        }
         Lit next = pickBranchLit();
 
         if (next == lit_Undef) {
@@ -470,20 +430,18 @@ private:
       }
     }
   };
-  
+
 public:
-  std::vector<lbool> assigns;   // The current assignments (ex assigns[0] = 0 -> X1 = True, assigns[1] = 1 -> X2 = False)
-  lbool answer;//SATISFIBLE 0 UNSATISFIBLE 1 UNKNOWN 2
-  Solver(){
-    qhead = 0;
-  }
+  std::vector<lbool> assigns; // The current assignments (ex assigns[0] = 0 ->
+                              // X1 = True, assigns[1] = 1 -> X2 = False)
+  lbool answer;               // SATISFIBLE 0 UNSATISFIBLE 1 UNKNOWN 2
+  Solver() { qhead = 0; }
   void parse_dimacs_problem(std::string problem_name) {
     std::vector<Lit> lits;
     int vars = 0;
     int clauses = 0;
     std::string line;
     std::ifstream ifs(problem_name, std::ios_base::in);
-
     while (ifs.good()) {
       getline(ifs, line);
       if (line.size() > 0) {
@@ -493,8 +451,8 @@ public:
           continue;
         } else {
           readClause(line, lits);
-	  if (lits.size() > 0)
-	    addClause_(lits);
+          if (lits.size() > 0)
+            addClause_(lits);
         }
       }
     }
@@ -516,7 +474,7 @@ public:
     answer = status;
     return status;
   };
-  
+
   void addClause(std::vector<int> &clause) {
     std::vector<Lit> lits;
     for (int i = 0; i < clause.size(); i++) {
@@ -543,14 +501,4 @@ public:
     }
   }
 };
-}
-
-int main(int argc, char *argv[]) {
-  togasat::Solver solver;
-  // std::string problem_name = "sample_unsat_problem.cnf";
-  // std::string problem_name = "sample_sat_problem.cnf";
-  std::string problem_name = argv[1];
-  solver.parse_dimacs_problem(problem_name);
-  togasat::lbool status = solver.solve();
-  solver.print_answer();
 }
