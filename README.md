@@ -76,3 +76,4 @@ Coming soon!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 - Back jump
 - Phase saving
 - Luby restart
+- VSIDS
