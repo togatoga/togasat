@@ -30,6 +30,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <stdio.h>
 #include <string>
 #include <vector>
+#include <set>
 
 #include <unordered_map>
 #include <unordered_set>
@@ -135,7 +136,7 @@ private:
 
     assigns.push_back(l_Undef);
     vardata.push_back(mkVarData(CRef_Undef, 0));
-
+    activity.push_back(0.0);
     seen.push_back(false);
     polarity.push_back(sign);
     decision.push_back(0);
@@ -200,7 +201,9 @@ private:
   std::vector<Lit> trail;
   std::vector<int> trail_lim;
   // Todo rename(not heap)
-  std::queue<Var> order_heap;
+  std::set<std::pair<double, Var>> order_heap;
+  std::vector<double> activity;
+  double var_inc;
   std::vector<Lit> model;
   std::vector<Lit> conflict;
   int nVars() const { return vardata.size(); }
@@ -209,6 +212,28 @@ private:
 
   inline CRef reason(Var x) const { return vardata[x].reason; }
   inline int level(Var x) const { return vardata[x].level; }
+  inline void varBumpActivity(Var v){
+    std::pair<double, Var> p = std::make_pair(activity[v], v);
+    activity[v] += var_inc;
+    if (order_heap.erase(p) == 1){
+      order_heap.emplace(std::make_pair(activity[v], v));
+    }
+    
+    if (activity[v] > 1e100){
+      //Rescale
+      std::set<std::pair<double,Var>> tmp_order;
+      tmp_order = order_heap;
+      order_heap.clear();
+      for (int i = 0; i < nVars(); i++){
+	activity[i] *= 1e-100;
+      }
+      for (auto &val : tmp_order){
+	order_heap.emplace(std::make_pair(activity[val.first], val.first));
+      }
+      var_inc *= 1e-100;
+    }
+
+  }
   bool satisfied(const Clause &c) const {
     for (int i = 0; i < c.size(); i++) {
       if (value(c[i]) == l_True) {
@@ -226,7 +251,7 @@ private:
   }
   void setDecisionVar(Var v, bool b) {
     decision[v] = b;
-    order_heap.push(v);
+    order_heap.emplace(std::make_pair(0.0, v));
   }
   void uncheckedEnqueue(Lit p, CRef from = CRef_Undef) {
     assert(value(p) == l_Undef);
@@ -242,8 +267,9 @@ private:
         next = var_Undef;
         break;
       } else {
-        next = order_heap.front();
-        order_heap.pop();
+	auto p = *order_heap.rbegin();
+        next = p.second;
+        order_heap.erase(p);
       }
     }
     return next == var_Undef ? lit_Undef : mkLit(next, polarity[next]);
@@ -260,6 +286,7 @@ private:
       for (int j = (p == lit_Undef) ? 0 : 1; j < c.size(); j++) {
         Lit q = c[j];
         if (not seen[var(q)] and level(var(q)) > 0) {
+	  varBumpActivity(var(q));
           seen[var(q)] = 1;
           if (level(var(q)) >= decisionLevel()) {
             pathC++;
@@ -307,7 +334,7 @@ private:
         Var x = var(trail[c]);
         assigns[x] = l_Undef;
         polarity[x] = sign(trail[c]);
-        order_heap.push(x);
+        order_heap.emplace(std::make_pair(activity[x], x));
       }
       qhead = trail_lim[level];
       trail.erase(trail.end() - (trail.size() - trail_lim[level]), trail.end());
@@ -413,7 +440,8 @@ private:
           attachClause(cr);
           uncheckedEnqueue(learnt_clause[0], cr);
         }
-
+	//varDecay
+	var_inc *= 1.05;
       } else {
         // NO CONFLICT
         if ((nof_conflicts >= 0 and conflictC >= nof_conflicts)) {
@@ -463,6 +491,7 @@ public:
     conflict.clear();
     lbool status = l_Undef;
     answer = l_Undef;
+    var_inc = 1.01;
     int curr_restarts = 0;
     double restart_inc = 2;
     double restart_first = 100;
