@@ -473,7 +473,7 @@ private:
   
 public:
   std::vector<lbool> assigns;   // The current assignments (ex assigns[0] = 0 -> X1 = True, assigns[1] = 1 -> X2 = False)
-  lbool answer;//SATISFIBLE 0 UNSATISFIBLE 1 UNKNOWN 2
+  lbool answer;//SATISFIABLE 0 UNSATISFIABLE 1 UNKNOWN 2
   Solver(){
     qhead = 0;
   }
