@@ -31,3 +31,6 @@
 #
 Solver
 *~
+
+*.cnf
+*.txt
