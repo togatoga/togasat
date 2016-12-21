@@ -114,9 +114,7 @@ private:
     Clause(const std::vector<Lit> &ps, bool learnt) {
       header.learnt = learnt;
       header.size = ps.size();
-      for (int i = 0; i < ps.size(); i++) {
-        data.push_back(ps[i]);
-      }
+      data = ps;
     }
 
     int size() const { return header.size; }
@@ -135,7 +133,7 @@ private:
     int v = nVars();
 
     assigns.push_back(l_Undef);
-    vardata.push_back(mkVarData(CRef_Undef, 0));
+    vardata.emplace_back(mkVarData(CRef_Undef, 0));
     activity.push_back(0.0);
     seen.push_back(false);
     polarity.push_back(sign);
@@ -145,7 +143,7 @@ private:
   }
 
   bool addClause_(std::vector<Lit> &ps) {
-    std::sort(ps.begin(), ps.end());
+    //std::sort(ps.begin(), ps.end());
     // empty clause
     if (ps.size() == 0) {
       return false;
@@ -164,8 +162,8 @@ private:
 
     assert(c.size() > 1);
 
-    watches[(~c[0]).x].push_back(Watcher(cr, c[1]));
-    watches[(~c[1]).x].push_back(Watcher(cr, c[0]));
+    watches[(~c[0]).x].emplace_back(Watcher(cr, c[1]));
+    watches[(~c[1]).x].emplace_back(Watcher(cr, c[0]));
   }
 
   // Input
@@ -184,7 +182,7 @@ private:
       while (var >= nVars()) {
         newVar();
       }
-      lits.push_back(val > 0 ? mkLit(var, false) : mkLit(var, true));
+      lits.emplace_back(val > 0 ? mkLit(var, false) : mkLit(var, true));
     }
   }
 
@@ -279,7 +277,7 @@ private:
     int pathC = 0;
     Lit p = lit_Undef;
     int index = trail.size() - 1;
-    out_learnt.push_back(mkLit(0, false));
+    out_learnt.emplace_back(mkLit(0, false));
     do {
       assert(confl != CRef_Undef);
       Clause &c = ca[confl];
@@ -419,7 +417,7 @@ private:
   lbool search(int nof_conflicts) {
     int backtrack_level;
     std::vector<Lit> learnt_clause;
-    learnt_clause.push_back(mkLit(-1, false));
+    learnt_clause.emplace_back(mkLit(-1, false));
     int conflictC = 0;
     while (true) {
       CRef confl = propagate();
@@ -510,7 +508,7 @@ public:
       int var = abs(clause[i]) - 1;
       while (var >= nVars())
         newVar();
-      lits.push_back(clause[i] > 0 ? mkLit(var, false) : mkLit(var, true));
+      lits.emplace_back(clause[i] > 0 ? mkLit(var, false) : mkLit(var, true));
     }
     addClause_(lits);
   }
