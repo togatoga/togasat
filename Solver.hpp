@@ -8,10 +8,8 @@ without limitation the rights to use, copy, modify, merge, publish,
 distribute, sublicense, and/or sell copies of the Software, and to
 permit persons to whom the Software is furnished to do so, subject to
 the following conditions:
-
 The above copyright notice and this permission notice shall be included
 in all copies or substantial portions of the Software.
-
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
 OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
 MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -37,12 +35,12 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 // SAT Solver
 // CDCL Solver
 // Author togatoga
-// https://github.com/togasakih/Togasat
+// https://github.com/togatoga/Togasat
 namespace togasat {
 using Var = int;
 using CRef = int;
 using lbool = int;
-const CRef CRef_Undef = INT32_MAX;
+const CRef CRef_Undef = -1;
 class Solver {
 
 private:
@@ -114,7 +112,12 @@ private:
     Clause(const std::vector<Lit> &ps, bool learnt) {
       header.learnt = learnt;
       header.size = ps.size();
-      data = ps;
+      //data = move(ps);
+      data.resize(header.size);
+      for (int i = 0; i < ps.size(); i++) {
+       	data[i] = ps[i];
+      //   //data.emplace_back(ps[i]);
+       }
     }
 
     int size() const { return header.size; }
@@ -123,21 +126,21 @@ private:
     Lit operator[](int i) const { return data[i]; }
   };
 
-  CRef alloc_clause(const std::vector<Lit> &ps, bool learnt = false) {
+  CRef allocClause(std::vector<Lit> &ps, bool learnt = false) {
     static CRef res = 0;
-    ca[res] = Clause(ps, learnt);
+    ca[res] = std::move(Clause(ps, learnt));
     return res++;
   }
 
   Var newVar(bool sign = true, bool dvar = true) {
     int v = nVars();
 
-    assigns.push_back(l_Undef);
+    assigns.emplace_back(l_Undef);
     vardata.emplace_back(mkVarData(CRef_Undef, 0));
-    activity.push_back(0.0);
-    seen.push_back(false);
-    polarity.push_back(sign);
-    decision.push_back(0);
+    activity.emplace_back(0.0);
+    seen.emplace_back(false);
+    polarity.emplace_back(sign);
+    decision.emplace_back(0);
     setDecisionVar(v, dvar);
     return v;
   }
@@ -150,8 +153,8 @@ private:
     } else if (ps.size() == 1) {
       uncheckedEnqueue(ps[0]);
     } else {
-      CRef cr = alloc_clause(ps, false);
-      clauses.insert(cr);
+      CRef cr = allocClause(ps, false);
+      //clauses.insert(cr);
       attachClause(cr);
     }
 
@@ -206,7 +209,7 @@ private:
   std::vector<Lit> conflict;
   int nVars() const { return vardata.size(); }
   int decisionLevel() const { return trail_lim.size(); }
-  void newDecisionLevel() { trail_lim.push_back(trail.size()); }
+  void newDecisionLevel() { trail_lim.emplace_back(trail.size()); }
 
   inline CRef reason(Var x) const { return vardata[x].reason; }
   inline int level(Var x) const { return vardata[x].level; }
@@ -216,11 +219,11 @@ private:
     if (order_heap.erase(p) == 1){
       order_heap.emplace(std::make_pair(activity[v], v));
     }
-    
+
     if (activity[v] > 1e100){
       //Rescale
       std::set<std::pair<double,Var>> tmp_order;
-      tmp_order = order_heap;
+      tmp_order = std::move(order_heap);
       order_heap.clear();
       for (int i = 0; i < nVars(); i++){
 	activity[i] *= 1e-100;
@@ -254,8 +257,8 @@ private:
   void uncheckedEnqueue(Lit p, CRef from = CRef_Undef) {
     assert(value(p) == l_Undef);
     assigns[var(p)] = sign(p);
-    vardata[var(p)] = mkVarData(from, decisionLevel());
-    trail.push_back(p);
+    vardata[var(p)] = std::move(mkVarData(from, decisionLevel()));
+    trail.emplace_back(p);
   }
   // decision
   Lit pickBranchLit() {
@@ -289,7 +292,7 @@ private:
           if (level(var(q)) >= decisionLevel()) {
             pathC++;
           } else {
-            out_learnt.push_back(q);
+            out_learnt.emplace_back(q);
           }
         }
       }
@@ -377,7 +380,7 @@ private:
           if (value(c[k]) != l_False) {
             c[1] = c[k];
             c[k] = false_lit;
-            watches[(~c[1]).x].push_back(w);
+            watches[(~c[1]).x].emplace_back(w);
             goto NextClause;
           }
         *j++ = w;
@@ -433,8 +436,8 @@ private:
         if (learnt_clause.size() == 1) {
           uncheckedEnqueue(learnt_clause[0]);
         } else {
-          CRef cr = alloc_clause(learnt_clause, true);
-          learnts.insert(cr);
+          CRef cr = allocClause(learnt_clause, true);
+          //learnts.insert(cr);
           attachClause(cr);
           uncheckedEnqueue(learnt_clause[0], cr);
         }
@@ -462,7 +465,7 @@ public:
                               // X1 = True, assigns[1] = 1 -> X2 = False)
   lbool answer;               // SATISFIABLE 0 UNSATISFIABLE 1 UNKNOWN 2
   Solver() { qhead = 0; }
-  void parse_dimacs_problem(std::string problem_name) {
+  void parseDimacsProblem(std::string problem_name) {
     std::vector<Lit> lits;
     int vars = 0;
     int clauses = 0;
@@ -504,15 +507,16 @@ public:
 
   void addClause(std::vector<int> &clause) {
     std::vector<Lit> lits;
+    lits.resize(clause.size());
     for (int i = 0; i < clause.size(); i++) {
       int var = abs(clause[i]) - 1;
       while (var >= nVars())
         newVar();
-      lits.emplace_back(clause[i] > 0 ? mkLit(var, false) : mkLit(var, true));
+      lits[i] = std::move((clause[i] > 0 ? mkLit(var, false) : mkLit(var, true)));
     }
     addClause_(lits);
   }
-  void print_answer() {
+  void printAnswer() {
     if (answer == 0) {
       std::cout << "SAT" << std::endl;
       for (int i = 0; i < assigns.size(); i++) {
