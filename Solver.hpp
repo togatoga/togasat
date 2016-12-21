@@ -228,7 +228,7 @@ private:
 	activity[i] *= 1e-100;
       }
       for (auto &val : tmp_order){
-	order_heap.emplace(std::make_pair(activity[val.first], val.first));
+	order_heap.emplace(std::make_pair(activity[val.second], val.second));
       }
       var_inc *= 1e-100;
     }
