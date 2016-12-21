@@ -138,9 +138,9 @@ private:
     assigns.emplace_back(l_Undef);
     vardata.emplace_back(mkVarData(CRef_Undef, 0));
     activity.emplace_back(0.0);
-    seen.emplace_back(false);
-    polarity.emplace_back(sign);
-    decision.emplace_back(0);
+    seen.push_back(false);
+    polarity.push_back(sign);
+    decision.push_back(0);
     setDecisionVar(v, dvar);
     return v;
   }
