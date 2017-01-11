@@ -1,6 +1,6 @@
 # Togasat
-CDCL SAT Solver for programming contest.  
-Togasat is CDCL SAT Solver by modifying minisat.
+Togasat is CDCL SAT Solver for programming contest.  
+Togasat is based on minisat.
 
 ##Install
 `g++ -std=c++11 -o Solver -O3 Solver.cpp`
@@ -17,7 +17,6 @@ clause.push_back(-3);//not x3
 
 solver.addClause(clause);//add (x1 v x2 v not x3)
 ```
-
 
 ```
 solver.assigns[0] = 0;//X1 = True
@@ -44,10 +43,6 @@ status is 0,SATISFIABLE
 status is 1,UNSATSFIABLE  
 status is 2,UNKNOWN
 
-
-
-
-
 #####SATISFIABLE
 If Sat Solver prove a given problem is SATISFIABLE(SAT),print SAT and model for problem.  
 `SAT  
@@ -63,11 +58,6 @@ For example,`-1` represents `X1=False`,`13` represents `X13=True`.
 #####UNSATISFIABLE
 only print UNSAT.  
 `UNSAT`
-
-
-##Tutorial for 8-queen problem
-Coming soon!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
 
 ##Algorithm
 - DPLL
