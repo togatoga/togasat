@@ -33,9 +33,9 @@ solver.assigns[i] = 0;//X_{i + 1} = True
 int main(int argc, char *argv[]) {
   togasat::Solver solver;
   std::string problem_name = argv[1];
-  solver.parse_dimacs_problem(problem_name);//parse problem
+  solver.parseDimacsProblem(problem_name);//parse problem
   togasat::lbool status = solver.solve();//solve sat problem
-  solver.print_answer();//print answer
+  solver.printAnswer();//print answer
 }
 ```
 
