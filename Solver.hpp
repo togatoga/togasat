@@ -35,7 +35,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 // SAT Solver
 // CDCL Solver
 // Author togatoga
-// https://github.com/togatoga/Togasat
+// https://github.com/togatoga/togasat
 namespace togasat {
 using Var = int;
 using CRef = int;
