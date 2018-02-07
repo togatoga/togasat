@@ -1,6 +1,6 @@
 # togasat
 
-togasat based on minisat is CDCL SAT Solver for programming contest.  
+togasat based on minisat is CDCL SAT Solver for programming contest.
 
 ## Install
 
@@ -22,7 +22,7 @@ Make a solver object.
    togast::Solver solver;
 ```
 
-If you want to add a (x1 v x2 v not x3) clause,
+If you want to add a (x1 v x2 v not x3) clause
 
 ``` c++
     std::vector<int> clause;
@@ -32,6 +32,7 @@ If you want to add a (x1 v x2 v not x3) clause,
 
     solver.addClause(clause);  // add (x1 v x2 v not x3)
 ```
+**YOU MUST NOT ADD ZERO VARIABLE, SAT SOLVER IS ABORETED**
 
 After adding all clauses, call `.solve()` method.
 
@@ -105,3 +106,16 @@ UNSAT
 -   Phase saving
 -   Luby restart
 -   VSIDS
+
+## Problems solved by togasat
+### [Codeforces](http://codeforces.com)
+- [Codeforces Round #383 (Div. 2)](http://codeforces.com/contest/742/problem/E)
+
+## Contributers
+- [mugenen](https://github.com/mugenen)
+- [kmyk](https://github.com/kmyk)
+
+## Note
+Welcome any pull requests, fix typo, refactor, correct document and so on.  
+If you can solve a competitive programming problem by togasat, please let me know and you make a pull request.
+It's very helpful for me.
