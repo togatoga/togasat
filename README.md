@@ -109,13 +109,13 @@ UNSAT
 
 ## Problems solved by togasat
 ### [Codeforces](http://codeforces.com)
-- [Codeforces Round #383 (Div. 2)](http://codeforces.com/contest/742/problem/E)
+- [Codeforces Round #383 (Div. 2) E](http://codeforces.com/contest/742/submission/22846987)
 
 ## Contributers
 - [mugenen](https://github.com/mugenen)
 - [kmyk](https://github.com/kmyk)
 
 ## Note
-Welcome any pull requests, fix typo, refactor, correct document and so on.  
+Welcome any pull requests, fix typo, refactor, correct document and so on.
 If you can solve a competitive programming problem by togasat, please let me know and you make a pull request.
 It's very helpful for me.
