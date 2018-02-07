@@ -32,7 +32,7 @@ If you want to add a (x1 v x2 v not x3) clause
 
     solver.addClause(clause);  // add (x1 v x2 v not x3)
 ```
-**YOU MUST NOT ADD ZERO VARIABLE, SAT SOLVER IS ABORETED**
+**YOU MUST NOT ADD CLAUSES CONTAINS ZERO VALUE, SAT SOLVER IS ABORETED**
 
 After adding all clauses, call `.solve()` method.
 
