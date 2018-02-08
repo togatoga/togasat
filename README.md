@@ -39,9 +39,9 @@ After adding all clauses, call `.solve()` method.
 
 The return value:
 
--   status is 0, SATISFIABLE
--   status is 1, UNSATSFIABLE
--   status is 2, UNKNOWN
+-   status is 0, `SATISFIABLE`
+-   status is 1, `UNSATSFIABLE`
+-   status is 2, `UNKNOWN`
 
 Also, you can get the assignments, e.g.
 
