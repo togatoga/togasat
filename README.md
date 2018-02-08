@@ -2,11 +2,8 @@
 
 togasat based on minisat is CDCL SAT Solver for programming contest.
 
-## Install
-
-```
-$ g++ -std=c++11 -o Solver -O3 Solver.cpp
-````
+## Minimum requirement C++ version
+- C++11
 
 ## How to use as a library
 
@@ -119,3 +116,5 @@ UNSAT
 Welcome any pull requests, fix typo, refactor, correct document and so on.
 If you can solve a competitive programming problem by togasat, please let me know and you make a pull request.
 It's very helpful for me.
+
+**Your star makes me movivated**
