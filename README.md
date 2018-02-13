@@ -117,4 +117,4 @@ Welcome any pull requests, fix typo, refactor, correct document and so on.
 If you can solve a competitive programming problem by togasat, please let me know and you make a pull request.
 It's very helpful for me.
 
-**Your star makes me movivated**
+**Your star makes me motivated**
