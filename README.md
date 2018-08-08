@@ -1,11 +1,11 @@
 # togasat
 
-togasat based on minisat is a CDCL SAT Solver for programming contest.
+togasat based on minisat is a CDCL SAT Solver for programming contests.
 
 ## Minimum requirement C++ version
 - C++11
 
-## How to use as a library
+## How to use togasat as a library
 
 At first, include the header (or do copy & paste):
 
@@ -94,7 +94,7 @@ It only prints UNSAT.
 UNSAT
 ```
 
-## Algorithm
+## Algorithms
 
 -   DPLL
 -   Clause learning
