@@ -1,11 +1,11 @@
 # togasat
 
-togasat based on minisat is CDCL SAT Solver for programming contest.
+togasat based on minisat is a CDCL SAT Solver for programming contests.
 
 ## Minimum requirement C++ version
 - C++11
 
-## How to use as a library
+## How to use togasat as a library
 
 At first, include the header (or do copy & paste):
 
@@ -16,7 +16,7 @@ At first, include the header (or do copy & paste):
 Make a solver object.
 
 ``` c++
-   togast::Solver solver;
+   togasat::Solver solver;
 ```
 
 If you want to add a (x1 v x2 v not x3) clause
@@ -29,7 +29,7 @@ If you want to add a (x1 v x2 v not x3) clause
 
     solver.addClause(clause);  // add (x1 v x2 v not x3)
 ```
-**YOU MUST NOT ADD CLAUSES CONTAINS ZERO VALUE, SAT SOLVER IS ABORETED**
+**YOU MUST NOT ADD CLAUSES THAT CONTAIN 0, IT WILL CAUSE A SAT SOLVER ABORTION**
 
 After adding all clauses, call `.solve()` method.
 
@@ -72,14 +72,14 @@ int main(int argc, char *argv[]) {
 
 ### SATISFIABLE
 
-If Sat Solver prove a given problem is SATISFIABLE(SAT),print SAT and model for problem.
+If Sat Solver proves a given problem is SATISFIABLE(SAT), it prints SAT and a model for the problem.
 
 ```
 SAT
 -1 -2 -3 -4 -5 -6 -7 -8 -9 -10 -11 -12 13 -14 15 16 0
 ```
 
-The model is seperated by space and ended with zero(0).
+The model is separated by a space and ended with zero(0).
 
 -   A positive integer represents `True`.
 -   A negative integer represents `False`.
@@ -88,13 +88,13 @@ For example,`-1` represents `X1=False`,`13` represents `X13=True`.
 
 ### UNSATISFIABLE
 
-only print UNSAT.
+It only prints UNSAT.
 
 ```
 UNSAT
 ```
 
-## Algorithm
+## Algorithms
 
 -   DPLL
 -   Clause learning
@@ -108,12 +108,12 @@ UNSAT
 ### [Codeforces](http://codeforces.com)
 - [Codeforces Round #383 (Div. 2) E](http://codeforces.com/contest/742/submission/22846987)
 
-## Contributers
+## Contributors
 - [mugenen](https://github.com/mugenen)
 - [kmyk](https://github.com/kmyk)
 
 ## Note
-Welcome any pull requests, fix typo, refactor, correct document and so on.
+Welcome any pull requests, fix of typo, refactoring, correction of documents and so on.
 If you can solve a competitive programming problem by togasat, please let me know and you make a pull request.
 It's very helpful for me.
 
