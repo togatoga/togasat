@@ -111,6 +111,7 @@ UNSAT
 ## Contributors
 - [mugenen](https://github.com/mugenen)
 - [kmyk](https://github.com/kmyk)
+- [koba-e964](https://github.com/koba-e964)
 
 ## Note
 Welcome any pull requests, fix of typo, refactoring, correction of documents and so on.
