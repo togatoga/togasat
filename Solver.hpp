@@ -1,3 +1,5 @@
+#ifndef TOGASAT_HPP
+#define TOGASAT_HPP
 /************************************************************
 MiniSat -- Copyright (c) 2003-2006, Niklas Een, Niklas Sorensson
            Copyright (c) 2007-2010  Niklas Sorensson
@@ -533,3 +535,4 @@ public:
   }
 };
 }
+#endif TOGASAT_HPP
