@@ -28,9 +28,7 @@
 *.out
 *.app
 
-#
+# togasat
 Solver
 *~
 
-*.cnf
-*.txt
