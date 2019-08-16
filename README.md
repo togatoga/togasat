@@ -10,7 +10,7 @@ togasat based on minisat is a CDCL SAT Solver for programming contests.
 At first, include the header (or do copy & paste):
 
 ``` c++
-#include "Solver.hpp"
+#include "togasat.hpp"
 ```
 
 Make a solver object.
@@ -56,7 +56,7 @@ You should take care that `0` denotes `true` and `1` denotes `false`.
 ## How to solve cnf
 
 ```
-$ ./Solver <cnf problem>
+$ ./togasat <cnf problem>
 ```
 
 
