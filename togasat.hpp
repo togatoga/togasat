@@ -28,6 +28,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <queue>
 #include <sstream>
 #include <stdio.h>
+#include <math.h>
 #include <string>
 #include <vector>
 #include <set>
@@ -535,4 +536,4 @@ public:
   }
 };
 }
-#endif TOGASAT_HPP
+#endif //TOGASAT_HPP
