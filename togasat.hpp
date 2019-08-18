@@ -536,4 +536,4 @@ public:
   }
 };
 }
-#endif //TOGASAT_HPP
+#endif // TOGASAT_HPP
