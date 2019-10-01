@@ -20,18 +20,18 @@ LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  ************************************************************/
-#include <algorithm>
 #include <assert.h>
+#include <math.h>
+#include <stdio.h>
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <list>
 #include <queue>
+#include <set>
 #include <sstream>
-#include <stdio.h>
-#include <math.h>
 #include <string>
 #include <vector>
-#include <set>
 
 #include <unordered_map>
 #include <unordered_set>
@@ -45,8 +45,7 @@ using CRef = int;
 using lbool = int;
 const CRef CRef_Undef = -1;
 class Solver {
-
-private:
+ private:
   const lbool l_True = 0;
   const lbool l_False = 1;
   const lbool l_Undef = 2;
@@ -105,22 +104,22 @@ private:
 
   // Clause
   class Clause {
-  public:
+   public:
     struct {
       bool learnt;
       int size;
     } header;
-    std::vector<Lit> data; //(x1 v x2 v not x3)
+    std::vector<Lit> data;  //(x1 v x2 v not x3)
     Clause() {}
     Clause(const std::vector<Lit> &ps, bool learnt) {
       header.learnt = learnt;
       header.size = ps.size();
-      //data = move(ps);
+      // data = move(ps);
       data.resize(header.size);
       for (int i = 0; i < ps.size(); i++) {
-       	data[i] = ps[i];
-      //   //data.emplace_back(ps[i]);
-       }
+        data[i] = ps[i];
+        //   //data.emplace_back(ps[i]);
+      }
     }
 
     int size() const { return header.size; }
@@ -149,7 +148,7 @@ private:
   }
 
   bool addClause_(std::vector<Lit> &ps) {
-    //std::sort(ps.begin(), ps.end());
+    // std::sort(ps.begin(), ps.end());
     // empty clause
     if (ps.size() == 0) {
       return false;
@@ -157,7 +156,7 @@ private:
       uncheckedEnqueue(ps[0]);
     } else {
       CRef cr = allocClause(ps, false);
-      //clauses.insert(cr);
+      // clauses.insert(cr);
       attachClause(cr);
     }
 
@@ -182,8 +181,7 @@ private:
     while (ss) {
       int val;
       ss >> val;
-      if (val == 0)
-        break;
+      if (val == 0) break;
       var = abs(val) - 1;
       while (var >= nVars()) {
         newVar();
@@ -192,12 +190,12 @@ private:
     }
   }
 
-  std::unordered_map<CRef, Clause> ca; // store clauses
-  std::unordered_set<CRef> clauses;    // original problem;
+  std::unordered_map<CRef, Clause> ca;  // store clauses
+  std::unordered_set<CRef> clauses;     // original problem;
   std::unordered_set<CRef> learnts;
   std::unordered_map<int, std::vector<Watcher>> watches;
-  std::vector<VarData> vardata; // store reason and level for each variable
-  std::vector<bool> polarity;   // The preferred polarity of each variable
+  std::vector<VarData> vardata;  // store reason and level for each variable
+  std::vector<bool> polarity;    // The preferred polarity of each variable
   std::vector<bool> decision;
   std::vector<bool> seen;
   // Todo
@@ -216,27 +214,26 @@ private:
 
   inline CRef reason(Var x) const { return vardata[x].reason; }
   inline int level(Var x) const { return vardata[x].level; }
-  inline void varBumpActivity(Var v){
+  inline void varBumpActivity(Var v) {
     std::pair<double, Var> p = std::make_pair(activity[v], v);
     activity[v] += var_inc;
-    if (order_heap.erase(p) == 1){
+    if (order_heap.erase(p) == 1) {
       order_heap.emplace(std::make_pair(activity[v], v));
     }
 
-    if (activity[v] > 1e100){
-      //Rescale
-      std::set<std::pair<double,Var>> tmp_order;
+    if (activity[v] > 1e100) {
+      // Rescale
+      std::set<std::pair<double, Var>> tmp_order;
       tmp_order = std::move(order_heap);
       order_heap.clear();
-      for (int i = 0; i < nVars(); i++){
-	activity[i] *= 1e-100;
+      for (int i = 0; i < nVars(); i++) {
+        activity[i] *= 1e-100;
       }
-      for (auto &val : tmp_order){
-	order_heap.emplace(std::make_pair(activity[val.second], val.second));
+      for (auto &val : tmp_order) {
+        order_heap.emplace(std::make_pair(activity[val.second], val.second));
       }
       var_inc *= 1e-100;
     }
-
   }
   bool satisfied(const Clause &c) const {
     for (int i = 0; i < c.size(); i++) {
@@ -271,7 +268,7 @@ private:
         next = var_Undef;
         break;
       } else {
-	auto p = *order_heap.rbegin();
+        auto p = *order_heap.rbegin();
         next = p.second;
         order_heap.erase(p);
       }
@@ -290,7 +287,7 @@ private:
       for (int j = (p == lit_Undef) ? 0 : 1; j < c.size(); j++) {
         Lit q = c[j];
         if (not seen[var(q)] and level(var(q)) > 0) {
-	  varBumpActivity(var(q));
+          varBumpActivity(var(q));
           seen[var(q)] = 1;
           if (level(var(q)) >= decisionLevel()) {
             pathC++;
@@ -350,7 +347,7 @@ private:
     CRef confl = CRef_Undef;
     int num_props = 0;
     while (qhead < trail.size()) {
-      Lit p = trail[qhead++]; // 'p' is enqueued fact to propagate.
+      Lit p = trail[qhead++];  // 'p' is enqueued fact to propagate.
       std::vector<Watcher> &ws = watches[p.x];
       std::vector<Watcher>::iterator i, j, end;
       num_props++;
@@ -366,8 +363,7 @@ private:
         CRef cr = i->cref;
         Clause &c = ca[cr];
         Lit false_lit = ~p;
-        if (c[0] == false_lit)
-          c[0] = c[1], c[1] = false_lit;
+        if (c[0] == false_lit) c[0] = c[1], c[1] = false_lit;
         assert(c[1] == false_lit);
         i++;
 
@@ -387,11 +383,10 @@ private:
             goto NextClause;
           }
         *j++ = w;
-        if (value(first) == l_False) { // conflict
+        if (value(first) == l_False) {  // conflict
           confl = cr;
           qhead = trail.size();
-          while (i < end)
-            *j++ = *i++;
+          while (i < end) *j++ = *i++;
         } else {
           uncheckedEnqueue(first, cr);
         }
@@ -404,7 +399,6 @@ private:
   }
 
   static double luby(double y, int x) {
-
     // Find the finite subsequence that contains index 'x', and the
     // size of that subsequence:
     int size, seq;
@@ -431,8 +425,7 @@ private:
       if (confl != CRef_Undef) {
         // CONFLICT
         conflictC++;
-        if (decisionLevel() == 0)
-          return l_False;
+        if (decisionLevel() == 0) return l_False;
         learnt_clause.clear();
         analyze(confl, learnt_clause, backtrack_level);
         cancelUntil(backtrack_level);
@@ -440,12 +433,12 @@ private:
           uncheckedEnqueue(learnt_clause[0]);
         } else {
           CRef cr = allocClause(learnt_clause, true);
-          //learnts.insert(cr);
+          // learnts.insert(cr);
           attachClause(cr);
           uncheckedEnqueue(learnt_clause[0], cr);
         }
-	//varDecay
-	var_inc *= 1.05;
+        // varDecay
+        var_inc *= 1.05;
       } else {
         // NO CONFLICT
         if ((nof_conflicts >= 0 and conflictC >= nof_conflicts)) {
@@ -463,10 +456,10 @@ private:
     }
   };
 
-public:
-  std::vector<lbool> assigns; // The current assignments (ex assigns[0] = 0 ->
-                              // X1 = True, assigns[1] = 1 -> X2 = False)
-  lbool answer;               // SATISFIABLE 0 UNSATISFIABLE 1 UNKNOWN 2
+ public:
+  std::vector<lbool> assigns;  // The current assignments (ex assigns[0] = 0 ->
+                               // X1 = True, assigns[1] = 1 -> X2 = False)
+  lbool answer;                // SATISFIABLE 0 UNSATISFIABLE 1 UNKNOWN 2
   Solver() { qhead = 0; }
   void parseDimacsProblem(std::string problem_name) {
     std::vector<Lit> lits;
@@ -483,8 +476,7 @@ public:
           continue;
         } else {
           readClause(line, lits);
-          if (lits.size() > 0)
-            addClause_(lits);
+          if (lits.size() > 0) addClause_(lits);
         }
       }
     }
@@ -513,9 +505,9 @@ public:
     lits.resize(clause.size());
     for (int i = 0; i < clause.size(); i++) {
       int var = abs(clause[i]) - 1;
-      while (var >= nVars())
-        newVar();
-      lits[i] = std::move((clause[i] > 0 ? mkLit(var, false) : mkLit(var, true)));
+      while (var >= nVars()) newVar();
+      lits[i] =
+          std::move((clause[i] > 0 ? mkLit(var, false) : mkLit(var, true)));
     }
     addClause_(lits);
   }
@@ -535,5 +527,5 @@ public:
     }
   }
 };
-}
-#endif // TOGASAT_HPP
+}  // namespace togasat
+#endif  // TOGASAT_HPP
