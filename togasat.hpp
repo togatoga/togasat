@@ -85,7 +85,6 @@ class Solver {
     return p;
   }
   const Lit lit_Undef = {-2};
-  const Lit lit_Error = {-1};
 
   // lifted boolean
   // VarData
@@ -120,7 +119,7 @@ class Solver {
       header.learnt = learnt;
       header.size = ps.size();
       data.resize(header.size);
-      for (int i = 0; i < ps.size(); i++) {
+      for (size_t i = 0; i < ps.size(); i++) {
         data[i] = ps[i];
       }
     }
@@ -257,7 +256,7 @@ class Solver {
   void uncheckedEnqueue(Lit p, CRef from = CRef_Undef) {
     assert(value(p) == l_Undef);
     assigns[var(p)] = sign(p);
-    vardata[var(p)] = std::move(mkVarData(from, decisionLevel()));
+    vardata[var(p)] = mkVarData(from, decisionLevel());
     trail.emplace_back(p);
   }
   // decision
@@ -309,8 +308,8 @@ class Solver {
     if (out_learnt.size() == 1) {
       out_btlevel = 0;
     } else {
-      int max_i = 1;
-      for (int i = 2; i < out_learnt.size(); i++) {
+      size_t max_i = 1;
+      for (size_t i = 2; i < out_learnt.size(); i++) {
         if (level(var(out_learnt[i])) > level(var(out_learnt[max_i]))) {
           max_i = i;
         }
@@ -322,7 +321,7 @@ class Solver {
       out_btlevel = level(var(p));
     }
 
-    for (int i = 0; i < out_learnt.size(); i++) {
+    for (size_t i = 0; i < out_learnt.size(); i++) {
       seen[var(out_learnt[i])] = false;
     }
   }
@@ -344,12 +343,10 @@ class Solver {
   }
   CRef propagate() {
     CRef confl = CRef_Undef;
-    int num_props = 0;
-    while (qhead < trail.size()) {
+    while (static_cast<size_t>(qhead) < trail.size()) {
       Lit p = trail[qhead++];  // 'p' is enqueued fact to propagate.
       std::vector<Watcher> &ws = watchers[p.x];
       std::vector<Watcher>::iterator i, j, end;
-      num_props++;
 
       for (i = j = ws.begin(), end = i + ws.size(); i != end;) {
         // Try to avoid inspecting the clause:
@@ -502,22 +499,21 @@ class Solver {
   void addClause(std::vector<int> &clause) {
     std::vector<Lit> lits;
     lits.resize(clause.size());
-    for (int i = 0; i < clause.size(); i++) {
+    for (size_t i = 0; i < clause.size(); i++) {
       int var = abs(clause[i]) - 1;
       while (var >= nVars()) newVar();
-      lits[i] =
-          std::move((clause[i] > 0 ? mkLit(var, false) : mkLit(var, true)));
+      lits[i] = (clause[i] > 0 ? mkLit(var, false) : mkLit(var, true));
     }
     addClause_(lits);
   }
   void printAnswer() {
     if (answer == 0) {
       std::cout << "SAT" << std::endl;
-      for (int i = 0; i < assigns.size(); i++) {
+      for (size_t i = 0; i < assigns.size(); i++) {
         if (assigns[i] == 0) {
           std::cout << (i + 1) << " ";
         } else {
-          std::cout << -(i + 1) << " ";
+          std::cout << -static_cast<int>(i + 1) << " ";
         }
       }
       std::cout << "0" << std::endl;
