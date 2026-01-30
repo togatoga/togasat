@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  build-and-test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        compiler: [g++, clang++]
+        exclude:
+          - os: macos-latest
+            compiler: g++
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and run tests
+        run: |
+          cd tests
+          ${{ matrix.compiler }} -std=c++11 -Wall -Wextra -I.. test_main.cpp -o run_tests
+          ./run_tests
+
+      - name: Build sudoku example
+        run: |
+          cd example/sudoku
+          ${{ matrix.compiler }} -std=c++11 -O2 main.cpp -o sudoku
+          ./sudoku < problem.txt
+
+  build-cpp17:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build with C++17
+        run: |
+          cd tests
+          g++ -std=c++17 -Wall -Wextra -I.. test_main.cpp -o run_tests
+          ./run_tests

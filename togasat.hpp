@@ -20,37 +20,42 @@ LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  ************************************************************/
-#include <assert.h>
-#include <math.h>
-#include <stdio.h>
+#include <cassert>
+#include <cmath>
+
 #include <algorithm>
 #include <fstream>
 #include <iostream>
-#include <list>
-#include <queue>
 #include <set>
 #include <sstream>
 #include <string>
-#include <vector>
-
 #include <unordered_map>
 #include <unordered_set>
-// SAT Solver
-// CDCL Solver
-// Author togatoga
+#include <vector>
+// CDCL SAT Solver
 // https://github.com/togatoga/togasat
 namespace togasat {
 using Var = int;
 using CRef = int;
 using lbool = int;
-const CRef CRef_Undef = -1;
+
+// Namespace-level constants
+constexpr lbool l_True = 0;
+constexpr lbool l_False = 1;
+constexpr lbool l_Undef = 2;
+constexpr CRef CRef_Undef = -1;
+
 class Solver {
  private:
-  const lbool l_True = 0;
-  const lbool l_False = 1;
-  const lbool l_Undef = 2;
+  static constexpr int var_Undef = -1;
 
-  const int var_Undef = -1;
+  // Activity rescaling constants
+  static constexpr double kActivityRescaleThreshold = 1e100;
+  static constexpr double kActivityRescaleFactor = 1e-100;
+  static constexpr double kVarDecayFactor = 1.05;
+  static constexpr double kInitialVarIncrement = 1.01;
+  static constexpr double kRestartIncrement = 2.0;
+  static constexpr double kRestartFirst = 100.0;
 
   // Literal
   struct Lit {
@@ -114,11 +119,9 @@ class Solver {
     Clause(const std::vector<Lit> &ps, bool learnt) {
       header.learnt = learnt;
       header.size = ps.size();
-      // data = move(ps);
       data.resize(header.size);
       for (int i = 0; i < ps.size(); i++) {
         data[i] = ps[i];
-        //   //data.emplace_back(ps[i]);
       }
     }
 
@@ -129,9 +132,9 @@ class Solver {
   };
 
   CRef allocClause(std::vector<Lit> &ps, bool learnt = false) {
-    static CRef res = 0;
-    ca[res] = std::move(Clause(ps, learnt));
-    return res++;
+    CRef ref = next_clause_ref_++;
+    clause_db_[ref] = Clause(ps, learnt);
+    return ref;
   }
 
   Var newVar(bool sign = true, bool dvar = true) {
@@ -148,61 +151,51 @@ class Solver {
   }
 
   bool addClause_(std::vector<Lit> &ps) {
-    // std::sort(ps.begin(), ps.end());
-    // empty clause
     if (ps.size() == 0) {
       return false;
     } else if (ps.size() == 1) {
       uncheckedEnqueue(ps[0]);
     } else {
       CRef cr = allocClause(ps, false);
-      // clauses.insert(cr);
       attachClause(cr);
     }
-
     return true;
   }
   void attachClause(CRef cr) {
-    const Clause &c = ca[cr];
+    const Clause &c = clause_db_[cr];
 
     assert(c.size() > 1);
 
-    watches[(~c[0]).x].emplace_back(Watcher(cr, c[1]));
-    watches[(~c[1]).x].emplace_back(Watcher(cr, c[0]));
+    watchers[(~c[0]).x].emplace_back(Watcher(cr, c[1]));
+    watchers[(~c[1]).x].emplace_back(Watcher(cr, c[0]));
   }
 
-  // Input
   void readClause(const std::string &line, std::vector<Lit> &lits) {
     lits.clear();
-    int parsed_lit, var;
-    parsed_lit = var = 0;
-    bool neg = false;
-    std::stringstream ss(line);
-    while (ss) {
-      int val;
-      ss >> val;
+    std::istringstream iss(line);
+    int val;
+    while (iss >> val) {
       if (val == 0) break;
-      var = abs(val) - 1;
-      while (var >= nVars()) {
+      int v = abs(val) - 1;
+      while (v >= nVars()) {
         newVar();
       }
-      lits.emplace_back(val > 0 ? mkLit(var, false) : mkLit(var, true));
+      lits.emplace_back(val > 0 ? mkLit(v, false) : mkLit(v, true));
     }
   }
 
-  std::unordered_map<CRef, Clause> ca;  // store clauses
-  std::unordered_set<CRef> clauses;     // original problem;
+  std::unordered_map<CRef, Clause> clause_db_;  // clause database
+  std::unordered_set<CRef> clauses;             // original problem
   std::unordered_set<CRef> learnts;
-  std::unordered_map<int, std::vector<Watcher>> watches;
+  std::unordered_map<int, std::vector<Watcher>> watchers;
+  CRef next_clause_ref_ = 0;
   std::vector<VarData> vardata;  // store reason and level for each variable
   std::vector<bool> polarity;    // The preferred polarity of each variable
   std::vector<bool> decision;
   std::vector<bool> seen;
-  // Todo
   int qhead;
   std::vector<Lit> trail;
   std::vector<int> trail_lim;
-  // Todo rename(not heap)
   std::set<std::pair<double, Var>> order_heap;
   std::vector<double> activity;
   double var_inc;
@@ -221,18 +214,17 @@ class Solver {
       order_heap.emplace(std::make_pair(activity[v], v));
     }
 
-    if (activity[v] > 1e100) {
-      // Rescale
+    if (activity[v] > kActivityRescaleThreshold) {
       std::set<std::pair<double, Var>> tmp_order;
       tmp_order = std::move(order_heap);
       order_heap.clear();
       for (int i = 0; i < nVars(); i++) {
-        activity[i] *= 1e-100;
+        activity[i] *= kActivityRescaleFactor;
       }
       for (auto &val : tmp_order) {
         order_heap.emplace(std::make_pair(activity[val.second], val.second));
       }
-      var_inc *= 1e-100;
+      var_inc *= kActivityRescaleFactor;
     }
   }
   bool satisfied(const Clause &c) const {
@@ -263,7 +255,7 @@ class Solver {
   // decision
   Lit pickBranchLit() {
     Var next = var_Undef;
-    while (next == var_Undef or value(next) != l_Undef) {
+    while (next == var_Undef || value(next) != l_Undef) {
       if (order_heap.empty()) {
         next = var_Undef;
         break;
@@ -283,10 +275,10 @@ class Solver {
     out_learnt.emplace_back(mkLit(0, false));
     do {
       assert(confl != CRef_Undef);
-      Clause &c = ca[confl];
+      Clause &c = clause_db_[confl];
       for (int j = (p == lit_Undef) ? 0 : 1; j < c.size(); j++) {
         Lit q = c[j];
-        if (not seen[var(q)] and level(var(q)) > 0) {
+        if (!seen[var(q)] && level(var(q)) > 0) {
           varBumpActivity(var(q));
           seen[var(q)] = 1;
           if (level(var(q)) >= decisionLevel()) {
@@ -296,8 +288,7 @@ class Solver {
           }
         }
       }
-      while (not seen[var(trail[index--])])
-        ;
+      while (!seen[var(trail[index--])]);
       p = trail[index + 1];
       confl = reason(var(p));
       seen[var(p)] = 0;
@@ -348,7 +339,7 @@ class Solver {
     int num_props = 0;
     while (qhead < trail.size()) {
       Lit p = trail[qhead++];  // 'p' is enqueued fact to propagate.
-      std::vector<Watcher> &ws = watches[p.x];
+      std::vector<Watcher> &ws = watchers[p.x];
       std::vector<Watcher>::iterator i, j, end;
       num_props++;
 
@@ -361,7 +352,7 @@ class Solver {
         }
 
         CRef cr = i->cref;
-        Clause &c = ca[cr];
+        Clause &c = clause_db_[cr];
         Lit false_lit = ~p;
         if (c[0] == false_lit) c[0] = c[1], c[1] = false_lit;
         assert(c[1] == false_lit);
@@ -379,7 +370,7 @@ class Solver {
           if (value(c[k]) != l_False) {
             c[1] = c[k];
             c[k] = false_lit;
-            watches[(~c[1]).x].emplace_back(w);
+            watchers[(~c[1]).x].emplace_back(w);
             goto NextClause;
           }
         *j++ = w;
@@ -402,8 +393,7 @@ class Solver {
     // Find the finite subsequence that contains index 'x', and the
     // size of that subsequence:
     int size, seq;
-    for (size = 1, seq = 0; size < x + 1; seq++, size = 2 * size + 1)
-      ;
+    for (size = 1, seq = 0; size < x + 1; seq++, size = 2 * size + 1);
 
     while (size - 1 != x) {
       size = (size - 1) >> 1;
@@ -433,15 +423,13 @@ class Solver {
           uncheckedEnqueue(learnt_clause[0]);
         } else {
           CRef cr = allocClause(learnt_clause, true);
-          // learnts.insert(cr);
           attachClause(cr);
           uncheckedEnqueue(learnt_clause[0], cr);
         }
-        // varDecay
-        var_inc *= 1.05;
+        var_inc *= kVarDecayFactor;
       } else {
         // NO CONFLICT
-        if ((nof_conflicts >= 0 and conflictC >= nof_conflicts)) {
+        if ((nof_conflicts >= 0 && conflictC >= nof_conflicts)) {
           cancelUntil(0);
           return l_Undef;
         }
@@ -460,19 +448,20 @@ class Solver {
   std::vector<lbool> assigns;  // The current assignments (ex assigns[0] = 0 ->
                                // X1 = True, assigns[1] = 1 -> X2 = False)
   lbool answer;                // SATISFIABLE 0 UNSATISFIABLE 1 UNKNOWN 2
-  Solver() { qhead = 0; }
+  Solver() : qhead(0), answer(l_Undef) {}
   void parseDimacsProblem(std::string problem_name) {
     std::vector<Lit> lits;
-    int vars = 0;
-    int clauses = 0;
     std::string line;
     std::ifstream ifs(problem_name, std::ios_base::in);
     while (ifs.good()) {
       getline(ifs, line);
       if (line.size() > 0) {
         if (line[0] == 'p') {
-          sscanf(line.c_str(), "p cnf %d %d", &vars, &clauses);
-        } else if (line[0] == 'c' or line[0] == 'p') {
+          std::istringstream iss(line);
+          std::string p_str, cnf_str;
+          int vars, clauses;
+          iss >> p_str >> cnf_str >> vars >> clauses;
+        } else if (line[0] == 'c') {
           continue;
         } else {
           readClause(line, lits);
@@ -487,18 +476,16 @@ class Solver {
     conflict.clear();
     lbool status = l_Undef;
     answer = l_Undef;
-    var_inc = 1.01;
+    var_inc = kInitialVarIncrement;
     int curr_restarts = 0;
-    double restart_inc = 2;
-    double restart_first = 100;
     while (status == l_Undef) {
-      double rest_base = luby(restart_inc, curr_restarts);
-      status = search(rest_base * restart_first);
+      double rest_base = luby(kRestartIncrement, curr_restarts);
+      status = search(rest_base * kRestartFirst);
       curr_restarts++;
     }
     answer = status;
     return status;
-  };
+  }
 
   void addClause(std::vector<int> &clause) {
     std::vector<Lit> lits;

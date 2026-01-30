@@ -1,6 +1,8 @@
 # togasat
 
-togasat based on minisat is a header-only CDCL SAT Solver for programming contests.
+[![CI](https://github.com/togatoga/togasat/actions/workflows/ci.yml/badge.svg)](https://github.com/togatoga/togasat/actions/workflows/ci.yml)
+
+togasat, based on MiniSat, is a header-only CDCL SAT Solver for programming contests.
 
 ## Minimum requirement C++ version
 - C++11
@@ -29,7 +31,7 @@ If you want to add a (x1 v x2 v not x3) clause
 
     solver.addClause(clause);  // add (x1 v x2 v not x3)
 ```
-**YOU MUST NOT ADD CLAUSES THAT CONTAIN 0, IT WILL CAUSE A SAT SOLVER ABORTION**
+**YOU MUST NOT ADD CLAUSES THAT CONTAIN 0, IT WILL CAUSE A SAT SOLVER ABORT**
 
 After adding all clauses, call `.solve()` method.
 
@@ -37,28 +39,23 @@ After adding all clauses, call `.solve()` method.
     togasat::lbool status = solver.solve();
 ```
 
-The return value:
+The return value (namespace-level constants):
 
--   status is 0, `SATISFIABLE`
--   status is 1, `UNSATSFIABLE`
--   status is 2, `UNKNOWN`
+-   `togasat::l_True` (0): `SATISFIABLE`
+-   `togasat::l_False` (1): `UNSATISFIABLE`
+-   `togasat::l_Undef` (2): `UNKNOWN`
 
 Also, you can get the assignments, e.g.
 
 ``` c++
-   solver.assigns[0] = 0;  // X_1 = True
-   solver.assigns[1] = 1;  // X_2 = False
-   solver.assigns[i] = 0;  // X_{i + 1} = True
+   solver.assigns[0] == togasat::l_True;   // X_1 = True
+   solver.assigns[1] == togasat::l_False;  // X_2 = False
+   solver.assigns[i] == togasat::l_True;   // X_{i + 1} = True
 ```
 
-You should take care that `0` denotes `true` and `1` denotes `false`.
+You should take care that `l_True` (0) denotes `true` and `l_False` (1) denotes `false`.
 
-## How to solve cnf
-
-```
-$ ./togasat <cnf problem>
-```
-
+## How to solve CNF
 
 ``` c++
 int main(int argc, char *argv[]) {
@@ -92,6 +89,24 @@ It only prints UNSAT.
 
 ```
 UNSAT
+```
+
+## Example: Sudoku Solver
+
+The `example/sudoku/` directory contains a complete Sudoku solver using togasat:
+
+```bash
+cd example/sudoku
+g++ -std=c++11 -O2 main.cpp -o sudoku
+./sudoku < problem.txt
+```
+
+## Running Tests
+
+Tests use the [doctest](https://github.com/doctest/doctest) framework:
+
+```bash
+make test
 ```
 
 ## Algorithms

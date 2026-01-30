@@ -32,3 +32,20 @@
 Solver
 *~
 
+# Test executables
+tests/run_tests
+
+# Example executables
+example/sudoku/sudoku
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+
+# Claude Code
+.claude/
