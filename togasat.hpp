@@ -152,9 +152,16 @@ class Solver {
 
   bool addClause_(std::vector<Lit> &ps) {
     if (ps.size() == 0) {
+      ok_ = false;
       return false;
     } else if (ps.size() == 1) {
-      uncheckedEnqueue(ps[0]);
+      if (value(ps[0]) == l_False) {
+        ok_ = false;
+        return false;  // conflict
+      } else if (value(ps[0]) == l_Undef) {
+        uncheckedEnqueue(ps[0]);
+      }
+      // if l_True, already satisfied - do nothing
     } else {
       CRef cr = allocClause(ps, false);
       attachClause(cr);
@@ -189,6 +196,7 @@ class Solver {
   std::unordered_set<CRef> learnts;
   std::unordered_map<int, std::vector<Watcher>> watchers;
   CRef next_clause_ref_ = 0;
+  bool ok_ = true;  // false if conflict detected during clause addition
   std::vector<VarData> vardata;  // store reason and level for each variable
   std::vector<bool> polarity;    // The preferred polarity of each variable
   std::vector<bool> decision;
@@ -474,6 +482,10 @@ class Solver {
   lbool solve() {
     model.clear();
     conflict.clear();
+    if (!ok_) {
+      answer = l_False;
+      return l_False;
+    }
     lbool status = l_Undef;
     answer = l_Undef;
     var_inc = kInitialVarIncrement;

@@ -111,6 +111,26 @@ TEST_SUITE("Edge Cases") {
     CHECK(solver.assigns[0] == togasat::l_True);
   }
 
+  TEST_CASE("Duplicate unit clauses (Issue #9)") {
+    togasat::Solver solver;
+    std::vector<int> c1 = {1};
+    std::vector<int> c2 = {1};
+    solver.addClause(c1);
+    solver.addClause(c2);  // same unit clause - should not crash
+    togasat::lbool result = solver.solve();
+    CHECK(result == togasat::l_True);
+  }
+
+  TEST_CASE("Conflicting unit clauses") {
+    togasat::Solver solver;
+    std::vector<int> c1 = {1};
+    std::vector<int> c2 = {-1};
+    solver.addClause(c1);
+    solver.addClause(c2);  // conflicting unit clause
+    togasat::lbool result = solver.solve();
+    CHECK(result == togasat::l_False);
+  }
+
   TEST_CASE("Large clause") {
     togasat::Solver solver;
     std::vector<int> clause;
